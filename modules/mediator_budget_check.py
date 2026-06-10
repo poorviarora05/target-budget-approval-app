@@ -36,10 +36,21 @@ def show_mediator_budget_check():
     st.subheader("Requester Details")
 
     st.write("College Name:", selected_request["college_name"])
-    st.write("Training Topic:", selected_request["training_topic"])
-    st.write("Trainer Requirement:", selected_request["trainer_requirement"])
 
-    st.write("Hours:", selected_request["hours"])
+    st.write(
+        "Training Topic:",
+        selected_request["training_topic"]
+    )
+
+    st.write(
+        "Trainer Requirement:",
+        selected_request["trainer_requirement"]
+    )
+
+    st.write(
+        "Hours:",
+        selected_request["hours"]
+    )
 
     st.write(
         "Training Days:",
@@ -51,18 +62,12 @@ def show_mediator_budget_check():
         selected_request.get("estimated_budget", 0)
     )
 
-    st.write("Stay Required:", selected_request["stay_required"])
-    st.write("Travel Required:", selected_request["travel_required"])
-    st.write("Food Required:", selected_request["food_required"])
-
     st.subheader("Internal Budget")
 
     st.write(
         "Available Internal Budget:",
         INTERNAL_APP_BUDGET
     )
-
-    st.subheader("Expense Calculation")
 
     rate_per_hour = st.number_input(
         "Rate Per Hour",
@@ -101,20 +106,20 @@ def show_mediator_budget_check():
     )
 
     training_days_value = selected_request.get(
-    "training_days",
-    1
-)
+        "training_days",
+        1
+    )
 
-if pd.isna(training_days_value):
-    training_days_value = 1
+    if pd.isna(training_days_value):
+        training_days_value = 1
 
-training_days_value = int(training_days_value)
+    training_days_value = int(training_days_value)
 
-trainer_cost = (
-    rate_per_hour
-    * int(selected_request["hours"])
-    * training_days_value
-)
+    trainer_cost = (
+        rate_per_hour
+        * int(selected_request["hours"])
+        * training_days_value
+    )
 
     total_estimated_cost = (
         trainer_cost
@@ -127,16 +132,14 @@ trainer_cost = (
 
     st.subheader("Budget Comparison")
 
-    st.write("Trainer Cost:", trainer_cost)
+    st.write(
+        "Trainer Cost:",
+        trainer_cost
+    )
 
     st.write(
         "Total Estimated Cost:",
         total_estimated_cost
-    )
-
-    st.write(
-        "Internal App Budget:",
-        INTERNAL_APP_BUDGET
     )
 
     difference = (
@@ -212,11 +215,6 @@ trainer_cost = (
             index,
             "other_cost"
         ] = other_cost
-
-        requests_df.loc[
-            index,
-            "internal_app_budget"
-        ] = INTERNAL_APP_BUDGET
 
         requests_df.loc[
             index,
