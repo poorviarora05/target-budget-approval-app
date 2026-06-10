@@ -27,6 +27,26 @@ def show_create_request(username):
         min_value=1,
         value=1
 )
+        training_days = st.number_input(
+        "Number of Training Days",
+        min_value=1,
+        value=1
+)
+
+        rate_per_hour = st.number_input(
+        "Rate Per Hour",
+        min_value=0,
+        value=1000
+)
+        estimated_budget = (
+    hours
+    * training_days
+    * rate_per_hour
+)
+
+st.info(
+    f"Estimated Budget: Rs.{estimated_budget}"
+)
         st.subheader("Service Requirements")
 
         stay_required = st.selectbox("Stay Required?", ["Yes", "No"])
@@ -50,6 +70,13 @@ def show_create_request(username):
                 "training_topic": training_topic,
                 "trainer_requirement": trainer_requirement,
                 "hours": hours,
+                "training_days": training_days,
+                "rate_per_hour": rate_per_hour,
+                "estimated_budget": (
+                hours
+                * training_days
+                * rate_per_hour
+            ),
                 "stay_required": stay_required,
                 "travel_required": travel_required,
                 "food_required": food_required,
