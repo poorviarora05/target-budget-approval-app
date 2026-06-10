@@ -223,10 +223,14 @@ def show_mediator_budget_check():
             "total_estimated_cost"
         ] = total_estimated_cost
 
-        requests_df.loc[
+                requests_df["mediator_remarks"] = requests_df[
+            "mediator_remarks"
+        ].astype("object")
+
+        requests_df.at[
             index,
             "mediator_remarks"
-        ] = mediator_remarks
+        ] = str(mediator_remarks)
 
         if decision == "Approve and Send to Director":
 
