@@ -55,7 +55,7 @@ def show_create_request(username):
         other_requirements = st.text_area("Other Requirements")
         purpose = st.text_area("Purpose / Remarks")
 
-        submit = st.form_submit_button("Submit Request")
+                submit = st.form_submit_button("Submit Request")
 
         if submit:
             new_request = {
