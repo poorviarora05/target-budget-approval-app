@@ -27,20 +27,27 @@ def show_create_request(username):
         min_value=1,
         value=1
 )
+
     training_days = st.number_input(
         "Number of Training Days",
         min_value=1,
         value=1
 )
+
     rate_per_hour = st.number_input(
         "Rate Per Hour",
         min_value=0,
         value=1000
 )
+
     estimated_budget = (
     hours
     * training_days
     * rate_per_hour
+)
+
+st.info(
+    f"Estimated Budget: ₹{estimated_budget}"
 )
 
 st.info(
