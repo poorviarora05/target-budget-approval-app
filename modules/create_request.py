@@ -4,7 +4,6 @@ from datetime import datetime
 
 REQUESTS_FILE = "requests.csv"
 
-
 def show_create_request(username):
     st.header("Create Training Request")
 
