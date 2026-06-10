@@ -22,18 +22,27 @@ def show_director_approval():
         == "Pending Director Approval"
     ]
 
+    # ---------------- DIALOG NOTIFICATION ---------------- #
+
     if not pending_requests.empty:
 
-        st.warning(
-            f"🔔 {len(pending_requests)} request(s) waiting for Director approval!"
-        )
+        @st.dialog("🔔 New Approval Request")
+        def show_notification():
 
-        st.balloons()
+            st.write(
+                f"{len(pending_requests)} request(s) received from Mediator for approval."
+            )
+
+        show_notification()
+
+    # ---------------- NO REQUESTS ---------------- #
 
     if pending_requests.empty:
 
         st.info("No requests pending for Director.")
         return
+
+    # ---------------- REQUEST SELECTION ---------------- #
 
     request_id = st.selectbox(
         "Select Request",
@@ -43,6 +52,8 @@ def show_director_approval():
     selected_request = pending_requests[
         pending_requests["request_id"] == request_id
     ].iloc[0]
+
+    # ---------------- REQUEST DETAILS ---------------- #
 
     st.subheader("Request Details")
 
@@ -62,6 +73,24 @@ def show_director_approval():
     )
 
     st.write(
+        "Hours:",
+        selected_request.get("hours", 0)
+    )
+
+    st.write(
+        "Training Days:",
+        selected_request.get("training_days", 1)
+    )
+
+    st.write(
+        "Estimated Budget:",
+        selected_request.get(
+            "estimated_budget",
+            0
+        )
+    )
+
+    st.write(
         "Total Estimated Cost:",
         selected_request.get(
             "total_estimated_cost",
@@ -76,6 +105,8 @@ def show_director_approval():
             ""
         )
     )
+
+    # ---------------- DECISION ---------------- #
 
     decision = st.selectbox(
         "Director Decision",
