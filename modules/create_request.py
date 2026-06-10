@@ -22,23 +22,22 @@ def show_create_request(username):
 )
         training_topic = st.text_input("Training Topic")
         trainer_requirement = st.text_input("Trainer / Industrialist Requirement")
-        hours = st.number_input(
+    hours = st.number_input(
        "Number of Hours",
         min_value=1,
         value=1
 )
-        training_days = st.number_input(
+    training_days = st.number_input(
         "Number of Training Days",
         min_value=1,
         value=1
 )
-
-        rate_per_hour = st.number_input(
+    rate_per_hour = st.number_input(
         "Rate Per Hour",
         min_value=0,
         value=1000
 )
-        estimated_budget = (
+    estimated_budget = (
     hours
     * training_days
     * rate_per_hour
