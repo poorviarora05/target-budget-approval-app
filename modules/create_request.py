@@ -11,27 +11,15 @@ def show_create_request(username):
 
     try:
         requests_df = pd.read_csv(REQUESTS_FILE)
-
     except:
         requests_df = pd.DataFrame()
 
     with st.form("create_request_form"):
 
-        college_name = st.text_input(
-            "College Name"
-        )
-
-        requester_email = st.text_input(
-            "Requester Email"
-        )
-
-        training_topic = st.text_input(
-            "Training Topic"
-        )
-
-        trainer_requirement = st.text_input(
-            "Trainer / Industrialist Requirement"
-        )
+        college_name = st.text_input("College Name")
+        requester_email = st.text_input("Requester Email")
+        training_topic = st.text_input("Training Topic")
+        trainer_requirement = st.text_input("Trainer / Industrialist Requirement")
 
         hours = st.number_input(
             "Number of Hours Per Day",
@@ -51,47 +39,23 @@ def show_create_request(username):
             value=1000
         )
 
-        estimated_budget = (
-            hours
-            * training_days
-            * rate_per_hour
-        )
+        estimated_budget = hours * training_days * rate_per_hour
 
-        st.info(
-            f"Estimated Budget: ₹{estimated_budget}"
-        )
+        st.info(f"Estimated Budget: ₹{estimated_budget}")
 
-        stay_required = st.selectbox(
-            "Stay Required?",
-            ["Yes", "No"]
-        )
-
-        travel_required = st.selectbox(
-            "Travel Required?",
-            ["Yes", "No"]
-        )
-
-        food_required = st.selectbox(
-            "Food Required?",
-            ["Yes", "No"]
-        )
+        stay_required = st.selectbox("Stay Required?", ["Yes", "No"])
+        travel_required = st.selectbox("Travel Required?", ["Yes", "No"])
+        food_required = st.selectbox("Food Required?", ["Yes", "No"])
 
         training_material_required = st.selectbox(
             "Training Material Required?",
             ["Yes", "No"]
         )
 
-        other_requirements = st.text_area(
-            "Other Requirements"
-        )
+        other_requirements = st.text_area("Other Requirements")
+        purpose = st.text_area("Purpose / Remarks")
 
-        purpose = st.text_area(
-            "Purpose / Remarks"
-        )
-
-        submit = st.form_submit_button(
-            "Submit Request"
-        )
+        submit = st.form_submit_button("Submit Request")
 
         if submit:
 
@@ -113,9 +77,7 @@ def show_create_request(username):
                 "other_requirements": other_requirements,
                 "purpose": purpose,
                 "request_status": "Pending Mediator Review",
-                "created_at": datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                )
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
 
             requests_df = pd.concat(
@@ -128,6 +90,8 @@ def show_create_request(username):
                 index=False
             )
 
-            st.success(
-                "Request submitted successfully."
-            )
+            st.session_state.request_submitted = True
+
+    if st.session_state.get("request_submitted", False):
+        st.success("Request submitted successfully.")
+        st.session_state.request_submitted = False
