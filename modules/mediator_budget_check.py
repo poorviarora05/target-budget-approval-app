@@ -100,11 +100,21 @@ def show_mediator_budget_check():
         value=0
     )
 
-    trainer_cost = (
-        rate_per_hour
-        * int(selected_request["hours"])
-        * int(selected_request.get("training_days", 1))
-    )
+    training_days_value = selected_request.get(
+    "training_days",
+    1
+)
+
+if pd.isna(training_days_value):
+    training_days_value = 1
+
+training_days_value = int(training_days_value)
+
+trainer_cost = (
+    rate_per_hour
+    * int(selected_request["hours"])
+    * training_days_value
+)
 
     total_estimated_cost = (
         trainer_cost
