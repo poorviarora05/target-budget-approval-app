@@ -90,6 +90,8 @@ def show_create_request(username):
                 index=False
             )
 
+            st.toast("Request sent successfully!")
+
             st.session_state.request_submitted = True
 
     if st.session_state.get("request_submitted", False):
