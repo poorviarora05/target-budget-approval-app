@@ -16,6 +16,11 @@ def show_director_approval():
     pending_requests = requests_df[
         requests_df["request_status"] == "Pending Director Approval"
     ]
+    if not pending_requests.empty:
+    st.toast("New request received from mediator for approval!")
+    st.success(
+        f"🔔 {len(pending_requests)} new request(s) pending for Director approval."
+    )
 
     if pending_requests.empty:
         st.info("No requests pending for director approval.")
