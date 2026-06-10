@@ -16,48 +16,37 @@ def show_create_request(username):
     with st.form("create_request_form"):
         college_name = st.text_input("College Name")
         requester_email = st.text_input("Requester Email")
-        requester_phone = st.text_input(
-        "Requester WhatsApp Number with country code",
-         placeholder="+919999999999"
-)
         training_topic = st.text_input("Training Topic")
         trainer_requirement = st.text_input("Trainer / Industrialist Requirement")
-    hours = st.number_input(
-       "Number of Hours",
-        min_value=1,
-        value=1
-)
 
-    training_days = st.number_input(
-        "Number of Training Days",
-        min_value=1,
-        value=1
-)
+        hours = st.number_input(
+            "Number of Hours Per Day",
+            min_value=1,
+            value=1
+        )
 
-    rate_per_hour = st.number_input(
-        "Rate Per Hour",
-        min_value=0,
-        value=1000
-)
+        training_days = st.number_input(
+            "Number of Training Days",
+            min_value=1,
+            value=1
+        )
 
-    estimated_budget = (
-    hours
-    * training_days
-    * rate_per_hour
-)
+        rate_per_hour = st.number_input(
+            "Rate Per Hour",
+            min_value=0,
+            value=1000
+        )
 
-st.info(
-    f"Estimated Budget: ₹{estimated_budget}"
-)
+        estimated_budget = hours * training_days * rate_per_hour
 
-st.info(
-    f"Estimated Budget: Rs.{estimated_budget}"
-)
+        st.info(f"Estimated Budget: ₹{estimated_budget}")
+
         st.subheader("Service Requirements")
 
         stay_required = st.selectbox("Stay Required?", ["Yes", "No"])
         travel_required = st.selectbox("Travel Required?", ["Yes", "No"])
         food_required = st.selectbox("Food Required?", ["Yes", "No"])
+
         training_material_required = st.selectbox(
             "Training Material Required?",
             ["Yes", "No"]
@@ -72,17 +61,14 @@ st.info(
             new_request = {
                 "request_id": f"REQ{len(requests_df) + 1:03d}",
                 "created_by": username,
+                "requester_email": requester_email,
                 "college_name": college_name,
                 "training_topic": training_topic,
                 "trainer_requirement": trainer_requirement,
                 "hours": hours,
                 "training_days": training_days,
                 "rate_per_hour": rate_per_hour,
-                "estimated_budget": (
-                hours
-                * training_days
-                * rate_per_hour
-            ),
+                "estimated_budget": estimated_budget,
                 "stay_required": stay_required,
                 "travel_required": travel_required,
                 "food_required": food_required,
@@ -90,8 +76,6 @@ st.info(
                 "other_requirements": other_requirements,
                 "purpose": purpose,
                 "request_status": "Pending Mediator Review",
-                "requester_phone": requester_phone,
-                "requester_email": requester_email,
                 "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
 
