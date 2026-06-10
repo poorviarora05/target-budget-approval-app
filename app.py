@@ -7,13 +7,15 @@ from modules.director_approval import show_director_approval
 from modules.submit_invoice import show_submit_invoice
 from modules.invoice_approval import show_invoice_approval
 
+# ---------------- PAGE CONFIG ---------------- #
+
 st.set_page_config(
     page_title="TBAS Portal",
     page_icon="✨",
-    layout="wide",
+    layout="wide"
 )
 
-# ---------------- CUSTOM UI ---------------- #
+# ---------------- CUSTOM CSS ---------------- #
 
 st.markdown(
     """
@@ -34,8 +36,6 @@ st.markdown(
         padding-right: 2rem;
     }
 
-    /* Sidebar */
-
     section[data-testid="stSidebar"] {
         background: linear-gradient(
             180deg,
@@ -49,31 +49,27 @@ st.markdown(
         color: white !important;
     }
 
-    /* Header Card */
-
     .hero-card {
-        background: rgba(255,255,255,0.7);
+        background: rgba(255,255,255,0.75);
         backdrop-filter: blur(14px);
-        padding: 28px;
-        border-radius: 22px;
-        border: 1px solid rgba(255,255,255,0.3);
+        padding: 30px;
+        border-radius: 24px;
+        border: 1px solid rgba(255,255,255,0.25);
         box-shadow: 0 10px 30px rgba(0,0,0,0.08);
         margin-bottom: 24px;
     }
 
     .hero-title {
-        font-size: 40px;
+        font-size: 52px;
         font-weight: 800;
         color: #111827;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
     }
 
     .hero-subtitle {
-        font-size: 16px;
+        font-size: 18px;
         color: #6B7280;
     }
-
-    /* Buttons */
 
     .stButton > button {
         background: linear-gradient(
@@ -95,15 +91,11 @@ st.markdown(
         box-shadow: 0 10px 20px rgba(79,70,229,0.25);
     }
 
-    /* Inputs */
-
     .stTextInput input,
     .stNumberInput input,
     .stTextArea textarea {
         border-radius: 12px !important;
     }
-
-    /* Cards */
 
     div[data-testid="metric-container"] {
         background: white;
@@ -131,6 +123,7 @@ if not st.session_state.logged_in:
 st.markdown(
     """
     <div class="hero-card">
+
         <div class="hero-title">
             Trainer Budget Approval System
         </div>
@@ -139,6 +132,7 @@ st.markdown(
             Smart workflow portal for request creation,
             budget validation, approvals and invoice tracking.
         </div>
+
     </div>
     """,
     unsafe_allow_html=True
@@ -149,6 +143,7 @@ st.markdown(
 role = st.session_state.role
 
 st.sidebar.markdown("# ✨ TBAS Portal")
+
 st.sidebar.markdown("---")
 
 st.sidebar.markdown(
@@ -202,24 +197,30 @@ menu = st.sidebar.radio(
 # ---------------- ROUTING ---------------- #
 
 if menu == "📊 Dashboard":
+
     show_dashboard(
         st.session_state.role,
         st.session_state.username
     )
 
 elif menu == "📝 Create Request":
+
     show_create_request(
         st.session_state.username
     )
 
 elif menu == "💰 Budget Check":
+
     show_mediator_budget_check()
 
 elif menu == "✅ Director Approval":
+
     show_director_approval()
 
 elif menu == "📤 Submit Invoice":
+
     show_submit_invoice()
 
 elif menu == "📄 Invoice Approval":
+
     show_invoice_approval()
