@@ -6,6 +6,24 @@ REQUESTS_FILE = "requests.csv"
 
 def show_director_approval():
     st.header("Director Approval")
+    try:
+    requests_df = pd.read_csv("requests.csv")
+
+    pending_director = requests_df[
+        requests_df["request_status"]
+        == "Pending Director Approval"
+    ]
+
+    if len(pending_director) > 0:
+
+        st.warning(
+            f"🔔 {len(pending_director)} request(s) waiting for Director approval!"
+        )
+
+        st.balloons()
+
+except:
+    pass
 
     try:
         requests_df = pd.read_csv(REQUESTS_FILE)
