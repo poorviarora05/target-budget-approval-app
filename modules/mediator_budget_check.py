@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 
 REQUESTS_FILE = "requests.csv"
-
-# Internal company/app budget
 INTERNAL_APP_BUDGET = 25000
 
 
@@ -35,57 +33,34 @@ def show_mediator_budget_check():
         pending_requests["request_id"] == request_id
     ].iloc[0]
 
-    # ---------------- REQUEST DETAILS ---------------- #
-
     st.subheader("Requester Details")
 
     st.write("College Name:", selected_request["college_name"])
     st.write("Training Topic:", selected_request["training_topic"])
     st.write("Trainer Requirement:", selected_request["trainer_requirement"])
+
     st.write("Hours:", selected_request["hours"])
+
+    st.write(
+        "Training Days:",
+        selected_request.get("training_days", 1)
+    )
+
+    st.write(
+        "Estimated Budget:",
+        selected_request.get("estimated_budget", 0)
+    )
 
     st.write("Stay Required:", selected_request["stay_required"])
     st.write("Travel Required:", selected_request["travel_required"])
     st.write("Food Required:", selected_request["food_required"])
 
-    st.write(
-        "Training Material Required:",
-        selected_request["training_material_required"]
-    )
-
-    st.write("Other Requirements:", selected_request["other_requirements"])
-    st.write("Purpose:", selected_request["purpose"])
-
-    # ---------------- BUDGET COMPARISON ---------------- #
-
-    requester_budget = selected_request["requester_budget"]
-
-    st.subheader("Budget Comparison")
-
-    st.write("Requester Estimated Budget:", requester_budget)
+    st.subheader("Internal Budget")
 
     st.write(
         "Available Internal Budget:",
         INTERNAL_APP_BUDGET
     )
-
-    if requester_budget <= INTERNAL_APP_BUDGET:
-
-        st.success(
-            "Requester budget is within our available budget."
-        )
-
-        budget_comparison_status = "Requester Budget Accepted"
-
-    else:
-
-        st.error(
-            "Requester budget is higher than our available budget."
-        )
-
-        budget_comparison_status = "Requester Budget Exceeded"
-
-    # ---------------- COST DETAILS ---------------- #
 
     st.subheader("Expense Calculation")
 
@@ -125,7 +100,11 @@ def show_mediator_budget_check():
         value=0
     )
 
-    trainer_cost = rate_per_hour * int(selected_request["hours"])
+    trainer_cost = (
+        rate_per_hour
+        * int(selected_request["hours"])
+        * int(selected_request.get("training_days", 1))
+    )
 
     total_estimated_cost = (
         trainer_cost
@@ -136,7 +115,7 @@ def show_mediator_budget_check():
         + other_cost
     )
 
-    st.subheader("Calculated Cost")
+    st.subheader("Budget Comparison")
 
     st.write("Trainer Cost:", trainer_cost)
 
@@ -145,15 +124,20 @@ def show_mediator_budget_check():
         total_estimated_cost
     )
 
-    # ---------------- FINAL BUDGET CHECK ---------------- #
+    st.write(
+        "Internal App Budget:",
+        INTERNAL_APP_BUDGET
+    )
 
-    if (
-        requester_budget <= INTERNAL_APP_BUDGET
-        and total_estimated_cost <= INTERNAL_APP_BUDGET
-    ):
+    difference = (
+        INTERNAL_APP_BUDGET
+        - total_estimated_cost
+    )
+
+    if difference >= 0:
 
         st.success(
-            "Final budget approved."
+            f"Within budget. Remaining budget: ₹{difference}"
         )
 
         budget_status = "Budget Approved"
@@ -161,12 +145,10 @@ def show_mediator_budget_check():
     else:
 
         st.error(
-            "Budget problem detected."
+            f"Budget exceeded by ₹{abs(difference)}"
         )
 
         budget_status = "Budget Problem"
-
-    # ---------------- DECISION ---------------- #
 
     mediator_remarks = st.text_area(
         "Mediator Remarks"
@@ -186,22 +168,40 @@ def show_mediator_budget_check():
             requests_df["request_id"] == request_id
         ].index[0]
 
-        requests_df.loc[index, "rate_per_hour"] = rate_per_hour
+        requests_df.loc[
+            index,
+            "rate_per_hour"
+        ] = rate_per_hour
 
-        requests_df.loc[index, "trainer_cost"] = trainer_cost
+        requests_df.loc[
+            index,
+            "trainer_cost"
+        ] = trainer_cost
 
-        requests_df.loc[index, "stay_cost"] = stay_cost
+        requests_df.loc[
+            index,
+            "stay_cost"
+        ] = stay_cost
 
-        requests_df.loc[index, "travel_cost"] = travel_cost
+        requests_df.loc[
+            index,
+            "travel_cost"
+        ] = travel_cost
 
-        requests_df.loc[index, "food_cost"] = food_cost
+        requests_df.loc[
+            index,
+            "food_cost"
+        ] = food_cost
 
         requests_df.loc[
             index,
             "training_material_cost"
         ] = training_material_cost
 
-        requests_df.loc[index, "other_cost"] = other_cost
+        requests_df.loc[
+            index,
+            "other_cost"
+        ] = other_cost
 
         requests_df.loc[
             index,
@@ -215,17 +215,16 @@ def show_mediator_budget_check():
 
         requests_df.loc[
             index,
-            "budget_comparison_status"
-        ] = budget_comparison_status
-
-        requests_df.loc[
-            index,
             "total_estimated_cost"
         ] = total_estimated_cost
 
-                requests_df["mediator_remarks"] = requests_df[
-            "mediator_remarks"
-        ].astype("object")
+        if "mediator_remarks" not in requests_df.columns:
+            requests_df["mediator_remarks"] = ""
+
+        requests_df["mediator_remarks"] = (
+            requests_df["mediator_remarks"]
+            .astype(str)
+        )
 
         requests_df.at[
             index,
