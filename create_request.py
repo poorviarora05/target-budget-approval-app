@@ -27,12 +27,6 @@ def show_create_request(username):
         min_value=1,
         value=1
 )
-        requester_budget = st.number_input(
-       "Your Available Budget",
-       min_value=0,
-       value=0
-)
-
         st.subheader("Service Requirements")
 
         stay_required = st.selectbox("Stay Required?", ["Yes", "No"])
@@ -56,7 +50,6 @@ def show_create_request(username):
                 "training_topic": training_topic,
                 "trainer_requirement": trainer_requirement,
                 "hours": hours,
-                "requester_budget": requester_budget,
                 "stay_required": stay_required,
                 "travel_required": travel_required,
                 "food_required": food_required,
