@@ -80,7 +80,7 @@ st.markdown("""
 
 role = st.session_state.role
 
-st.sidebar.markdown("## 📊 TBAS Portal")
+st.sidebar.markdown("## TBAS Portal")
 st.sidebar.markdown(f"**Role:** {role}")
 st.sidebar.markdown("---")
 

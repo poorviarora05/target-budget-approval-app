@@ -16,6 +16,9 @@ def show_create_request(username):
 
     with st.form("create_request_form"):
 
+        training_date = st.date_input(
+        "Training Date"
+)
         college_name = st.text_input("College Name")
         requester_email = st.text_input("Requester Email")
         training_topic = st.text_input("Training Topic")
@@ -63,6 +66,7 @@ def show_create_request(username):
                 "request_id": f"REQ{len(requests_df) + 1:03d}",
                 "created_by": username,
                 "requester_email": requester_email,
+                "training_date": str(training_date),
                 "college_name": college_name,
                 "training_topic": training_topic,
                 "trainer_requirement": trainer_requirement,
