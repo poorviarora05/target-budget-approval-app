@@ -17,7 +17,6 @@ st.markdown("""
 <style>
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
-header {visibility: hidden;}
 
 .stApp {
     background: linear-gradient(135deg, #F8FAFC, #EEF2FF);
