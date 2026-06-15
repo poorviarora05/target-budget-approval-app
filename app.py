@@ -15,12 +15,16 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+
 .stApp {
-    background: #f5f7fb;
+    background: linear-gradient(135deg, #F8FAFC, #EEF2FF);
 }
 
 section[data-testid="stSidebar"] {
-    background: #111827;
+    background: linear-gradient(180deg, #0F172A, #1E293B);
 }
 
 section[data-testid="stSidebar"] * {
@@ -29,36 +33,61 @@ section[data-testid="stSidebar"] * {
 
 .hero-card {
     background: linear-gradient(135deg, #4F46E5, #7C3AED);
-    padding: 28px;
-    border-radius: 22px;
+    padding: 30px;
+    border-radius: 24px;
     color: white;
-    margin-bottom: 25px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    margin-bottom: 28px;
+    box-shadow: 0 12px 32px rgba(79,70,229,0.25);
 }
 
 .hero-title {
-    font-size: 36px;
+    font-size: 38px;
     font-weight: 800;
 }
 
 .hero-subtitle {
     font-size: 16px;
     margin-top: 8px;
-    opacity: 0.9;
+    opacity: 0.92;
+}
+
+.glass-card {
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(14px);
+    border-radius: 22px;
+    padding: 24px;
+    border: 1px solid rgba(255,255,255,0.45);
+    box-shadow: 0 10px 28px rgba(15,23,42,0.08);
+    margin-bottom: 20px;
 }
 
 .stButton button {
-    border-radius: 10px;
-    background: #4F46E5;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #4F46E5, #7C3AED);
     color: white;
     border: none;
-    font-weight: 600;
+    font-weight: 700;
+    padding: 0.55rem 1.2rem;
+}
+
+.stButton button:hover {
+    background: linear-gradient(135deg, #4338CA, #6D28D9);
+    color: white;
 }
 
 .stTextInput input,
 .stNumberInput input,
-.stTextArea textarea {
-    border-radius: 10px !important;
+.stTextArea textarea,
+.stSelectbox div {
+    border-radius: 12px !important;
+}
+
+div[data-testid="metric-container"] {
+    background: white;
+    border-radius: 18px;
+    padding: 16px;
+    border: 1px solid #E5E7EB;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.05);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -73,14 +102,14 @@ st.markdown("""
 <div class="hero-card">
     <div class="hero-title">Trainer Budget Approval System</div>
     <div class="hero-subtitle">
-        Smart workflow portal for request creation, budget validation, approvals and invoice tracking.
+        Enterprise workflow portal for training requests, budget validation, approvals and invoice tracking.
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 role = st.session_state.role
 
-st.sidebar.markdown("## TBAS Portal")
+st.sidebar.markdown("## 📊 TBAS Portal")
 st.sidebar.markdown(f"**Role:** {role}")
 st.sidebar.markdown("---")
 
