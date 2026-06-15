@@ -22,7 +22,7 @@ def show_create_request(username):
         college_name = st.text_input("College Name")
         requester_email = st.text_input("Requester Email")
         training_topic = st.text_input("Training Topic")
-        trainer_requirement = st.text_input("Trainer / Industrialist Requirement")
+        trainer_requirement = st.text_input("Trainer Name")
 
         hours = st.number_input(
             "Number of Hours Per Day",
