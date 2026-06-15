@@ -110,23 +110,11 @@ st.markdown("""
     box-shadow: 0 12px 30px rgba(79,70,229,0.25);
 ">
 
-    <h1 style="
-        margin:0;
-        font-size:52px;
-        font-weight:800;
-        letter-spacing:-1px;
-    ">
-        📊 Trainer Budget Approval System
-    </h1>
+    st.title("📊 Trainer Budget Approval System")
 
-    <p style="
-        margin-top:12px;
-        font-size:18px;
-        opacity:0.92;
-    ">
-        Enterprise workflow portal for training requests,
-        budget validation, approvals and invoice management.
-    </p>
+st.caption(
+    "Enterprise workflow portal for training requests, budget validation, approvals and invoice management."
+)
 
 </div>
 """, unsafe_allow_html=True)
