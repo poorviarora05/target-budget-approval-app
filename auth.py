@@ -142,7 +142,7 @@ def login_page():
                 "Register As",
                 [
                     "Requester",
-                    "Mediator",
+                    "Approver",
                     "Director",
                     "Trainer"
                 ],
