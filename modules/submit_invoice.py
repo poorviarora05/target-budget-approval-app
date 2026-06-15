@@ -1,3 +1,4 @@
+import streamlit.components.v1 as components
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -173,10 +174,11 @@ def show_submit_invoice():
 
     st.subheader("Invoice Preview")
 
-    st.markdown(
-        invoice_html,
-        unsafe_allow_html=True
-    )
+    components.html(
+    invoice_html,
+    height=900,
+    scrolling=True
+)
 
     if st.button("Submit Invoice"):
 
