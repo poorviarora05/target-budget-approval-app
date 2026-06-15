@@ -16,6 +16,9 @@ def show_create_request(username):
 
     with st.form("create_request_form"):
 
+        current_date = datetime.now().date()
+        st.write("Request Date:", current_date)
+
         start_date = st.date_input("Training Start Date")
         end_date = st.date_input("Training End Date")
 
@@ -45,8 +48,8 @@ def show_create_request(username):
             value=1
         )
 
-        training_days = st.number_input(
-            "Number of Training Days",
+        total_training_days = st.number_input(
+            "Total Days of Training",
             min_value=1,
             value=1
         )
@@ -59,43 +62,19 @@ def show_create_request(username):
 
         st.subheader("Per Day Service Budget")
 
-        stay_per_day = st.number_input(
-            "Stay Budget Per Day",
-            min_value=0,
-            value=0
-        )
-
-        travel_per_day = st.number_input(
-            "Travel Budget Per Day",
-            min_value=0,
-            value=0
-        )
-
-        food_per_day = st.number_input(
-            "Food Budget Per Day",
-            min_value=0,
-            value=0
-        )
-
-        material_per_day = st.number_input(
-            "Training Material Budget Per Day",
-            min_value=0,
-            value=0
-        )
-
-        other_per_day = st.number_input(
-            "Other Budget Per Day",
-            min_value=0,
-            value=0
-        )
+        stay_per_day = st.number_input("Stay Budget Per Day", min_value=0, value=0)
+        travel_per_day = st.number_input("Travel Budget Per Day", min_value=0, value=0)
+        food_per_day = st.number_input("Food Budget Per Day", min_value=0, value=0)
+        material_per_day = st.number_input("Training Material Budget Per Day", min_value=0, value=0)
+        other_per_day = st.number_input("Other Budget Per Day", min_value=0, value=0)
 
         trainer_cost = total_hours * rate_per_hour
 
-        stay_total = stay_per_day * training_days
-        travel_total = travel_per_day * training_days
-        food_total = food_per_day * training_days
-        material_total = material_per_day * training_days
-        other_total = other_per_day * training_days
+        stay_total = stay_per_day * total_training_days
+        travel_total = travel_per_day * total_training_days
+        food_total = food_per_day * total_training_days
+        material_total = material_per_day * total_training_days
+        other_total = other_per_day * total_training_days
 
         estimated_budget = (
             trainer_cost
@@ -117,13 +96,14 @@ def show_create_request(username):
             new_request = {
                 "request_id": f"REQ{len(requests_df) + 1:03d}",
                 "created_by": username,
+                "request_date": str(current_date),
                 "start_date": str(start_date),
                 "end_date": str(end_date),
                 "college_name": college_name,
                 "training_topic": training_topic,
                 "trainer_name": trainer_name,
                 "total_hours": total_hours,
-                "training_days": training_days,
+                "training_days": total_training_days,
                 "rate_per_hour": rate_per_hour,
                 "trainer_cost": trainer_cost,
                 "stay_per_day": stay_per_day,
@@ -147,9 +127,6 @@ def show_create_request(username):
                 ignore_index=True
             )
 
-            requests_df.to_csv(
-                REQUESTS_FILE,
-                index=False
-            )
+            requests_df.to_csv(REQUESTS_FILE, index=False)
 
             st.toast("Request sent successfully!")
