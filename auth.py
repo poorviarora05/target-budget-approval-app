@@ -85,7 +85,7 @@ def login_page():
                 "Continue As",
                 [
                     "Requester",
-                    "Mediator",
+                    "Approver",
                     "Director",
                     "Trainer"
                 ],

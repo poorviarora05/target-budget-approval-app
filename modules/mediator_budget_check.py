@@ -6,7 +6,7 @@ REQUESTS_FILE = "requests.csv"
 
 def show_mediator_budget_check():
 
-    st.header("Mediator Budget Check")
+    st.header("Approver Budget Allocation")
 
     try:
         requests_df = pd.read_csv(REQUESTS_FILE)
@@ -32,179 +32,127 @@ def show_mediator_budget_check():
         pending_requests["request_id"] == request_id
     ].iloc[0]
 
-    # ---------------- REQUESTER DETAILS TABLE ---------------- #
+    # ---------------- REQUEST DETAILS ---------------- #
 
-    st.subheader("Requester Details")
+    st.subheader("Training Request Details")
 
-    requester_data = pd.DataFrame({
+    details_table = pd.DataFrame({
 
         "Field": [
-            "Training Date",
+            "Request Date",
+            "Training Start Date",
+            "Training End Date",
             "College Name",
             "Training Topic",
-            "Trainer Requirement",
-            "Hours Per Day",
+            "Trainer Name",
+            "Total Hours",
             "Training Days",
-            "Estimated Budget",
-            "Stay Required",
-            "Travel Required",
-            "Food Required",
-            "Training Material Required",
-            "Other Requirements",
-            "Purpose"
+            "Estimated Budget"
         ],
 
         "Details": [
-            selected_request.get("training_date", ""),
+            selected_request.get("request_date", ""),
+            selected_request.get("start_date", ""),
+            selected_request.get("end_date", ""),
             selected_request.get("college_name", ""),
             selected_request.get("training_topic", ""),
-            selected_request.get("trainer_requirement", ""),
-            selected_request.get("hours", ""),
-            selected_request.get("training_days", 1),
-            selected_request.get("estimated_budget", 0),
-            selected_request.get("stay_required", ""),
-            selected_request.get("travel_required", ""),
-            selected_request.get("food_required", ""),
-            selected_request.get("training_material_required", ""),
-            selected_request.get("other_requirements", ""),
-            selected_request.get("purpose", "")
+            selected_request.get("trainer_name", ""),
+            selected_request.get("total_hours", ""),
+            selected_request.get("training_days", ""),
+            selected_request.get("estimated_budget", 0)
         ]
     })
 
-    st.table(requester_data)
+    st.table(details_table)
 
     # ---------------- UNIVERSITY BUDGET ---------------- #
 
-    st.subheader("University / College Budget")
+    st.subheader("University Budget Allocation")
 
     university_budget = st.number_input(
-        "Enter Budget Available for this University/College",
+        "Enter Total Budget Available for this University/College",
         min_value=0,
-        value=25000
+        value=200000
     )
 
-    # ---------------- COST DETAILS ---------------- #
-
-    st.subheader("Expense Calculation")
-
-    rate_per_hour = st.number_input(
-        "Rate Per Hour",
-        min_value=0,
-        value=3000
+    number_of_programs = st.number_input(
+        "Total Number of Programs",
+        min_value=1,
+        value=1
     )
 
-    stay_cost = st.number_input(
-        "Stay Cost",
-        min_value=0,
-        value=0
+    number_of_trainers = st.number_input(
+        "Total Number of Trainers",
+        min_value=1,
+        value=1
     )
 
-    travel_cost = st.number_input(
-        "Travel Cost",
-        min_value=0,
-        value=0
+    suggested_budget_per_program = (
+        university_budget / number_of_programs
     )
 
-    food_cost = st.number_input(
-        "Food Cost",
-        min_value=0,
-        value=0
+    suggested_budget_per_trainer = (
+        university_budget / number_of_trainers
     )
 
-    training_material_cost = st.number_input(
-        "Training Material Cost",
-        min_value=0,
-        value=0
+    st.info(
+        f"Suggested Budget Per Program: ₹{suggested_budget_per_program:,.0f}"
     )
 
-    other_cost = st.number_input(
-        "Other Expense Cost",
-        min_value=0,
-        value=0
+    st.info(
+        f"Suggested Budget Per Trainer: ₹{suggested_budget_per_trainer:,.0f}"
     )
 
-    training_days_value = selected_request.get(
-        "training_days",
-        1
+    estimated_budget = selected_request.get(
+        "estimated_budget",
+        0
     )
 
-    if pd.isna(training_days_value):
-        training_days_value = 1
-
-    training_days_value = int(training_days_value)
-
-    trainer_cost = (
-        rate_per_hour
-        * int(selected_request["hours"])
-        * training_days_value
+    remaining_budget = (
+        university_budget - estimated_budget
     )
 
-    total_estimated_cost = (
-        trainer_cost
-        + stay_cost
-        + travel_cost
-        + food_cost
-        + training_material_cost
-        + other_cost
+    st.subheader("Budget Analysis")
+
+    st.write(
+        f"Estimated Request Budget: ₹{estimated_budget:,.0f}"
     )
 
-    # ---------------- BUDGET COMPARISON ---------------- #
-
-    st.subheader("Budget Comparison")
-
-    comparison_df = pd.DataFrame({
-
-        "Category": [
-            "University Budget",
-            "Trainer Cost",
-            "Total Estimated Cost",
-            "Remaining Budget"
-        ],
-
-        "Amount": [
-            university_budget,
-            trainer_cost,
-            total_estimated_cost,
-            university_budget - total_estimated_cost
-        ]
-    })
-
-    st.table(comparison_df)
-
-    difference = (
-        university_budget
-        - total_estimated_cost
+    st.write(
+        f"Remaining Budget After Allocation: ₹{remaining_budget:,.0f}"
     )
 
-    if difference >= 0:
+    if estimated_budget <= suggested_budget_per_program:
 
         st.success(
-            f"Within budget. Remaining budget: ₹{difference}"
+            "Budget allocation is balanced."
         )
 
-        budget_status = "Budget Approved"
+        fairness_status = "Balanced Allocation"
 
     else:
 
-        st.error(
-            f"Budget exceeded by ₹{abs(difference)}"
+        st.warning(
+            "Budget exceeds suggested allocation."
         )
 
-        budget_status = "Budget Problem"
+        fairness_status = "Over Allocation"
 
-    # ---------------- DECISION ---------------- #
+    # ---------------- APPROVER REMARKS ---------------- #
 
-    mediator_remarks = st.text_area(
-        "Mediator Remarks"
+    approver_remarks = st.text_area(
+        "Approver Remarks"
     )
 
     decision = st.selectbox(
         "Decision",
         [
             "Approve and Send to Director",
-            "Send Back to Requester"
+            "Send Back for Revision"
         ]
     )
+
+    # ---------------- SUBMIT ---------------- #
 
     if st.button("Submit Decision"):
 
@@ -219,62 +167,46 @@ def show_mediator_budget_check():
 
         requests_df.loc[
             index,
-            "rate_per_hour"
-        ] = rate_per_hour
+            "number_of_programs"
+        ] = number_of_programs
 
         requests_df.loc[
             index,
-            "trainer_cost"
-        ] = trainer_cost
+            "number_of_trainers"
+        ] = number_of_trainers
 
         requests_df.loc[
             index,
-            "stay_cost"
-        ] = stay_cost
+            "suggested_budget_per_program"
+        ] = suggested_budget_per_program
 
         requests_df.loc[
             index,
-            "travel_cost"
-        ] = travel_cost
+            "suggested_budget_per_trainer"
+        ] = suggested_budget_per_trainer
 
         requests_df.loc[
             index,
-            "food_cost"
-        ] = food_cost
+            "remaining_budget"
+        ] = remaining_budget
 
         requests_df.loc[
             index,
-            "training_material_cost"
-        ] = training_material_cost
+            "fairness_status"
+        ] = fairness_status
 
-        requests_df.loc[
-            index,
-            "other_cost"
-        ] = other_cost
+        if "approver_remarks" not in requests_df.columns:
+            requests_df["approver_remarks"] = ""
 
-        requests_df.loc[
-            index,
-            "budget_status"
-        ] = budget_status
-
-        requests_df.loc[
-            index,
-            "total_estimated_cost"
-        ] = total_estimated_cost
-
-        if "mediator_remarks" not in requests_df.columns:
-
-            requests_df["mediator_remarks"] = ""
-
-        requests_df["mediator_remarks"] = (
-            requests_df["mediator_remarks"]
+        requests_df["approver_remarks"] = (
+            requests_df["approver_remarks"]
             .astype(str)
         )
 
         requests_df.at[
             index,
-            "mediator_remarks"
-        ] = str(mediator_remarks)
+            "approver_remarks"
+        ] = str(approver_remarks)
 
         if decision == "Approve and Send to Director":
 
@@ -288,7 +220,7 @@ def show_mediator_budget_check():
             requests_df.loc[
                 index,
                 "request_status"
-            ] = "Sent Back to Requester"
+            ] = "Sent Back for Revision"
 
         requests_df.to_csv(
             REQUESTS_FILE,
@@ -296,5 +228,5 @@ def show_mediator_budget_check():
         )
 
         st.success(
-            "Decision submitted successfully."
+            "Budget allocation submitted successfully."
         )

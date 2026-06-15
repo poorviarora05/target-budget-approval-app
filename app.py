@@ -82,9 +82,9 @@ if role == "Requester":
         "📊 Dashboard"
     ]
 
-elif role == "Mediator":
+elif role == "Approver":
     menu_options = [
-        "💰 Budget Check",
+        "💰 Budget Allocation",
         "📊 Dashboard"
     ]
 
@@ -119,7 +119,7 @@ elif menu == "📝 Create Request":
         st.session_state.username
     )
 
-elif menu == "💰 Budget Check":
+elif menu == "💰 Budget Allocation":
     show_mediator_budget_check()
 
 elif menu == "✅ Director Approval":
