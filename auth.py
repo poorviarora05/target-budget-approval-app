@@ -44,12 +44,36 @@ def login_page():
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
-    <div class="portal-title">Trainer Budget Approval System</div>
-    <div class="portal-subtitle">
-        Enterprise workflow portal for requests, budget approvals and invoices.
-    </div>
-    """, unsafe_allow_html=True)
+   st.markdown("""
+<div style="
+    background: linear-gradient(135deg, #4F46E5, #7C3AED);
+    padding: 40px;
+    border-radius: 26px;
+    color: white;
+    margin-bottom: 35px;
+    box-shadow: 0 14px 35px rgba(79,70,229,0.30);
+">
+
+    <h1 style="
+        margin:0;
+        font-size:54px;
+        font-weight:800;
+        letter-spacing:-1px;
+    ">
+        📊 Trainer Budget Approval System
+    </h1>
+
+    <p style="
+        margin-top:14px;
+        font-size:18px;
+        opacity:0.92;
+    ">
+        Enterprise workflow portal for training requests,
+        budget validation, approvals and invoice management.
+    </p>
+
+</div>
+""", unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 1.5, 1])
 
