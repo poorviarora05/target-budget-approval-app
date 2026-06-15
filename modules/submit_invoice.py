@@ -1,14 +1,14 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import os
 
 REQUESTS_FILE = "requests.csv"
 INVOICES_FILE = "invoices.csv"
 
 
 def show_submit_invoice():
-    st.header("Submit Invoice")
+
+    st.header("Generate Invoice")
 
     try:
         requests_df = pd.read_csv(REQUESTS_FILE)
@@ -22,11 +22,11 @@ def show_submit_invoice():
         invoices_df = pd.DataFrame()
 
     approved_requests = requests_df[
-        requests_df["request_status"] == "Director Approved"
+        requests_df["request_status"].isin(["Approved", "Director Approved"])
     ]
 
     if approved_requests.empty:
-        st.info("No director-approved requests available.")
+        st.info("No approved requests available for invoice generation.")
         return
 
     request_id = st.selectbox(
@@ -38,57 +38,112 @@ def show_submit_invoice():
         approved_requests["request_id"] == request_id
     ].iloc[0]
 
-    st.subheader("Approved Request Details")
-    st.write(selected_request)
+    st.subheader("Invoice Details")
 
-    st.subheader("Actual Expense Details")
+    col1, col2 = st.columns(2)
 
-    trainer_fee = st.number_input("Actual Trainer Fee", min_value=0, value=0)
-    stay_expense = st.number_input("Actual Stay Expense", min_value=0, value=0)
-    travel_expense = st.number_input("Actual Travel Expense", min_value=0, value=0)
-    food_expense = st.number_input("Actual Food Expense", min_value=0, value=0)
-    training_material_expense = st.number_input("Actual Training Material Expense", min_value=0, value=0)
-    other_expense = st.number_input("Actual Other Expense", min_value=0, value=0)
+    with col1:
+        company_name = st.text_input("Company Name", "Your Company Name")
+        company_address = st.text_area("Company Address")
+        bill_to = st.text_input("Bill To", selected_request.get("college_name", ""))
 
-    invoice_file = st.file_uploader(
-        "Upload Invoice / Bill",
-        type=["pdf", "png", "jpg", "jpeg"]
-    )
+    with col2:
+        invoice_number = st.text_input("Invoice Number", f"INV{len(invoices_df)+1:03d}")
+        invoice_date = st.date_input("Invoice Date")
+        due_date = st.date_input("Due Date")
 
-    total_actual_expense = (
-        trainer_fee
+    st.subheader("Expense Details")
+
+    service_fee = st.number_input("Service / Trainer Fee", min_value=0, value=0)
+    stay_expense = st.number_input("Stay Expense", min_value=0, value=0)
+    travel_expense = st.number_input("Travel Expense", min_value=0, value=0)
+    food_expense = st.number_input("Food Expense", min_value=0, value=0)
+    material_expense = st.number_input("Training Material Expense", min_value=0, value=0)
+    other_expense = st.number_input("Other Expense", min_value=0, value=0)
+
+    tax_rate = st.number_input("Tax Rate (%)", min_value=0.0, value=18.0)
+
+    subtotal = (
+        service_fee
         + stay_expense
         + travel_expense
         + food_expense
-        + training_material_expense
+        + material_expense
         + other_expense
     )
 
-    st.write("Total Actual Expense:", total_actual_expense)
+    tax_amount = subtotal * tax_rate / 100
+    total_amount = subtotal + tax_amount
+
+    comments = st.text_area(
+        "Other Comments",
+        "Payment due within 30 days."
+    )
+
+    invoice_html = f"""
+    <div style="background:white; padding:35px; border-radius:12px; border:1px solid #ddd; font-family:Arial;">
+        <div style="display:flex; justify-content:space-between;">
+            <div>
+                <h2 style="color:#1e3a8a;">{company_name}</h2>
+                <p>{company_address}</p>
+            </div>
+            <div style="text-align:right;">
+                <h1 style="color:#64748b;">INVOICE</h1>
+                <p><b>Date:</b> {invoice_date}</p>
+                <p><b>Invoice #:</b> {invoice_number}</p>
+                <p><b>Due Date:</b> {due_date}</p>
+            </div>
+        </div>
+
+        <hr>
+
+        <h3 style="background:#1e3a8a; color:white; padding:8px;">BILL TO</h3>
+        <p>{bill_to}</p>
+
+        <table style="width:100%; border-collapse:collapse; margin-top:20px;">
+            <tr style="background:#1e3a8a; color:white;">
+                <th style="padding:10px; text-align:left;">Description</th>
+                <th style="padding:10px; text-align:right;">Amount</th>
+            </tr>
+            <tr><td style="padding:8px;">Service / Trainer Fee</td><td style="padding:8px; text-align:right;">₹{service_fee}</td></tr>
+            <tr><td style="padding:8px;">Stay Expense</td><td style="padding:8px; text-align:right;">₹{stay_expense}</td></tr>
+            <tr><td style="padding:8px;">Travel Expense</td><td style="padding:8px; text-align:right;">₹{travel_expense}</td></tr>
+            <tr><td style="padding:8px;">Food Expense</td><td style="padding:8px; text-align:right;">₹{food_expense}</td></tr>
+            <tr><td style="padding:8px;">Training Material</td><td style="padding:8px; text-align:right;">₹{material_expense}</td></tr>
+            <tr><td style="padding:8px;">Other Expense</td><td style="padding:8px; text-align:right;">₹{other_expense}</td></tr>
+        </table>
+
+        <br>
+
+        <div style="text-align:right;">
+            <p><b>Subtotal:</b> ₹{subtotal}</p>
+            <p><b>Tax ({tax_rate}%):</b> ₹{tax_amount}</p>
+            <h2 style="color:#1e3a8a;">TOTAL: ₹{total_amount}</h2>
+        </div>
+
+        <h3 style="background:#1e3a8a; color:white; padding:8px;">OTHER COMMENTS</h3>
+        <p>{comments}</p>
+
+        <p style="text-align:center; margin-top:30px;"><b>Thank You For Your Business!</b></p>
+    </div>
+    """
+
+    st.subheader("Invoice Preview")
+    st.markdown(invoice_html, unsafe_allow_html=True)
 
     if st.button("Submit Invoice"):
-        invoice_id = f"INV{len(invoices_df) + 1:03d}"
-
-        file_path = ""
-
-        if invoice_file is not None:
-            os.makedirs("uploaded_invoices", exist_ok=True)
-            file_path = f"uploaded_invoices/{invoice_id}_{invoice_file.name}"
-
-            with open(file_path, "wb") as f:
-                f.write(invoice_file.getbuffer())
 
         new_invoice = {
-            "invoice_id": invoice_id,
+            "invoice_id": invoice_number,
             "request_id": request_id,
-            "trainer_fee": trainer_fee,
-            "stay_expense": stay_expense,
-            "travel_expense": travel_expense,
-            "food_expense": food_expense,
-            "training_material_expense": training_material_expense,
-            "other_expense": other_expense,
-            "total_actual_expense": total_actual_expense,
-            "invoice_file": file_path,
+            "company_name": company_name,
+            "bill_to": bill_to,
+            "invoice_date": invoice_date,
+            "due_date": due_date,
+            "subtotal": subtotal,
+            "tax_rate": tax_rate,
+            "tax_amount": tax_amount,
+            "total_amount": total_amount,
             "invoice_status": "Pending Director Invoice Approval",
             "submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -100,4 +155,4 @@ def show_submit_invoice():
 
         invoices_df.to_csv(INVOICES_FILE, index=False)
 
-        st.success("Invoice submitted successfully.")
+        st.success("Invoice generated and submitted successfully.")
