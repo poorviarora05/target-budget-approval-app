@@ -10,6 +10,7 @@ def show_director_approval():
 
     try:
         requests_df = pd.read_csv(REQUESTS_FILE)
+
     except:
         st.error("No requests found.")
         return
@@ -18,10 +19,13 @@ def show_director_approval():
         requests_df["request_status"] == "Pending Director Approval"
     ]
 
+    # ---------------- POPUP NOTIFICATION ---------------- #
+
     if not pending_requests.empty:
 
         @st.dialog("🔔 New Approval Request")
         def show_notification():
+
             st.write(
                 f"{len(pending_requests)} request(s) received from Mediator for approval."
             )
@@ -32,6 +36,8 @@ def show_director_approval():
         st.info("No requests pending for Director.")
         return
 
+    # ---------------- SELECT REQUEST ---------------- #
+
     request_id = st.selectbox(
         "Select Request",
         pending_requests["request_id"]
@@ -41,9 +47,14 @@ def show_director_approval():
         pending_requests["request_id"] == request_id
     ].iloc[0]
 
-    st.subheader("Request Details Received from Mediator")
+    # ---------------- TABLE VIEW ---------------- #
+
+    st.subheader(
+        "Request Details Received from Mediator"
+    )
 
     director_table = pd.DataFrame({
+
         "Field": [
             "Training Date",
             "College Name",
@@ -63,6 +74,7 @@ def show_director_approval():
             "Budget Status",
             "Mediator Remarks"
         ],
+
         "Details": [
             selected_request.get("training_date", ""),
             selected_request.get("college_name", ""),
@@ -86,12 +98,21 @@ def show_director_approval():
 
     st.table(director_table)
 
+    # ---------------- DECISION ---------------- #
+
     decision = st.selectbox(
         "Director Decision",
-        ["Approve", "Reject"]
+        [
+            "Approve",
+            "Reject"
+        ]
     )
 
-    director_remarks = st.text_area("Director Remarks")
+    director_remarks = st.text_area(
+        "Director Remarks"
+    )
+
+    # ---------------- SUBMIT ---------------- #
 
     if st.button("Submit Director Decision"):
 
@@ -99,14 +120,47 @@ def show_director_approval():
             requests_df["request_id"] == request_id
         ].index[0]
 
-        requests_df.loc[index, "director_remarks"] = director_remarks
+        # FIX DATATYPE ISSUE
+
+        if "director_remarks" not in requests_df.columns:
+
+            requests_df["director_remarks"] = ""
+
+        requests_df["director_remarks"] = (
+            requests_df["director_remarks"]
+            .astype(str)
+        )
+
+        requests_df.at[
+            index,
+            "director_remarks"
+        ] = str(director_remarks)
+
+        # STATUS UPDATE
 
         if decision == "Approve":
-            requests_df.loc[index, "request_status"] = "Approved"
-            st.success("Request approved successfully.")
+
+            requests_df.loc[
+                index,
+                "request_status"
+            ] = "Approved"
+
+            st.success(
+                "Request approved successfully."
+            )
+
         else:
-            requests_df.loc[index, "request_status"] = "Rejected"
-            st.error("Request rejected.")
+
+            requests_df.loc[
+                index,
+                "request_status"
+            ] = "Rejected"
+
+            st.error(
+                "Request rejected."
+            )
+
+        # SAVE
 
         requests_df.to_csv(
             REQUESTS_FILE,
