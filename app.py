@@ -15,114 +15,80 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------------- CSS ---------------- #
+# ---------------- CUSTOM CSS ---------------- #
 
-st.markdown(
-    """
-    <style>
+st.markdown("""
+<style>
 
-    #MainMenu {
-        visibility: hidden;
-    }
+#MainMenu {
+    visibility: hidden;
+}
 
-    footer {
-        visibility: hidden;
-    }
+footer {
+    visibility: hidden;
+}
 
-    .stApp {
-        background: linear-gradient(
-            135deg,
-            #F8FAFC,
-            #EEF2FF
-        );
-    }
+.stApp {
+    background: linear-gradient(
+        135deg,
+        #F8FAFC,
+        #EEF2FF
+    );
+}
 
-    section[data-testid="stSidebar"] {
-        background: linear-gradient(
-            180deg,
-            #0F172A,
-            #1E293B
-        );
-    }
+section[data-testid="stSidebar"] {
+    background: linear-gradient(
+        180deg,
+        #0F172A,
+        #1E293B
+    );
+}
 
-    section[data-testid="stSidebar"] * {
-        color: white !important;
-    }
+section[data-testid="stSidebar"] * {
+    color: white !important;
+}
 
-    .hero-card {
+.stButton button {
 
-        background: linear-gradient(
-            135deg,
-            #4F46E5,
-            #7C3AED
-        );
+    border-radius: 12px;
 
-        padding: 30px;
+    background: linear-gradient(
+        135deg,
+        #4F46E5,
+        #7C3AED
+    );
 
-        border-radius: 24px;
+    color: white;
 
-        color: white;
+    border: none;
 
-        margin-bottom: 28px;
+    font-weight: 700;
+}
 
-        box-shadow:
-            0 12px 32px rgba(79,70,229,0.25);
-    }
+.stTextInput input,
+.stNumberInput input,
+.stTextArea textarea,
+.stSelectbox div {
 
-    .hero-title {
-        font-size: 38px;
-        font-weight: 800;
-    }
+    border-radius: 12px !important;
+}
 
-    .hero-subtitle {
-        font-size: 16px;
-        margin-top: 8px;
-        opacity: 0.92;
-    }
+div[data-testid="metric-container"] {
 
-    .stButton button {
+    background: white;
 
-        border-radius: 12px;
+    border-radius: 18px;
 
-        background: linear-gradient(
-            135deg,
-            #4F46E5,
-            #7C3AED
-        );
+    padding: 16px;
 
-        color: white;
+    border: 1px solid #E5E7EB;
 
-        border: none;
+    box-shadow:
+        0 8px 20px rgba(0,0,0,0.05);
+}
 
-        font-weight: 700;
-    }
-
-    .stTextInput input,
-    .stNumberInput input,
-    .stTextArea textarea,
-    .stSelectbox div {
-
-        border-radius: 12px !important;
-    }
-
-    div[data-testid="metric-container"] {
-
-        background: white;
-
-        border-radius: 18px;
-
-        padding: 16px;
-
-        border: 1px solid #E5E7EB;
-
-        box-shadow:
-            0 8px 20px rgba(0,0,0,0.05);
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+</style>
+""", unsafe_allow_html=True)
 
 # ---------------- SESSION ---------------- #
 
@@ -132,25 +98,15 @@ if not st.session_state.logged_in:
     login_page()
     st.stop()
 
-# ---------------- HERO SECTION ---------------- #
+# ---------------- HEADER ---------------- #
 
-st.markdown(
-    """
-    <div class="hero-card">
+st.title("📊 Trainer Budget Approval System")
 
-        <div class="hero-title">
-            Trainer Budget Approval System
-        </div>
-
-        <div class="hero-subtitle">
-            Enterprise workflow portal for training requests,
-            budget validation, approvals and invoice tracking.
-        </div>
-
-    </div>
-    """,
-    unsafe_allow_html=True
+st.caption(
+    "Enterprise workflow portal for training requests, budget validation, approvals and invoice tracking."
 )
+
+st.markdown("---")
 
 # ---------------- SIDEBAR ---------------- #
 
@@ -203,7 +159,7 @@ else:
         "📊 Dashboard"
     ]
 
-# ---------------- NAVIGATION ---------------- #
+# ---------------- SIDEBAR NAVIGATION ---------------- #
 
 menu = st.sidebar.radio(
     "Navigation",
