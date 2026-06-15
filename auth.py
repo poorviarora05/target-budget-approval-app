@@ -22,6 +22,7 @@ def load_users():
             return pd.read_csv(USERS_FILE)
 
         except:
+
             return pd.DataFrame(
                 columns=[
                     "username",
@@ -51,40 +52,17 @@ def save_users(users_df):
 
 def login_page():
 
-    # ---------------- HERO SECTION ---------------- #
+    # ---------------- TITLE ---------------- #
 
-    st.markdown("""
-    <div style="
-        background: linear-gradient(135deg, #4F46E5, #7C3AED);
-        padding: 40px;
-        border-radius: 26px;
-        color: white;
-        margin-bottom: 35px;
-        box-shadow: 0 14px 35px rgba(79,70,229,0.30);
-    ">
+    st.title("📊 Trainer Budget Approval System")
 
-        <h1 style="
-            margin:0;
-            font-size:54px;
-            font-weight:800;
-            letter-spacing:-1px;
-        ">
-            📊 Trainer Budget Approval System
-        </h1>
+    st.caption(
+        "Enterprise workflow portal for training requests, budget validation, approvals and invoice management."
+    )
 
-        <p style="
-            margin-top:14px;
-            font-size:18px;
-            opacity:0.92;
-        ">
-            Enterprise workflow portal for training requests,
-            budget validation, approvals and invoice management.
-        </p>
+    st.markdown("---")
 
-    </div>
-    """, unsafe_allow_html=True)
-
-    # ---------------- LOGIN BOX ---------------- #
+    # ---------------- CENTER LOGIN BOX ---------------- #
 
     col1, col2, col3 = st.columns([1, 1.5, 1])
 
