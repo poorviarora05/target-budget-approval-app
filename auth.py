@@ -77,6 +77,7 @@ def login_page():
             padding: 28px;
             border-radius: 22px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            margin-top: 20px;
         }
 
         </style>
@@ -98,15 +99,21 @@ def login_page():
         unsafe_allow_html=True
     )
 
-    role = st.selectbox(
-        "Continue As",
-        [
-            "Requester",
-            "Mediator",
-            "Director",
-            "Trainer"
-        ]
-    )
+    # ---------------- CENTER ROLE SELECT ---------------- #
+
+    col1, col2, col3 = st.columns([1,2,1])
+
+    with col2:
+
+        role = st.selectbox(
+            "Continue As",
+            [
+                "Requester",
+                "Mediator",
+                "Director",
+                "Trainer"
+            ]
+        )
 
     tab1, tab2 = st.tabs(
         [
@@ -119,105 +126,113 @@ def login_page():
 
     with tab1:
 
-        st.markdown(
-            f"""
-            <div class="login-card">
-            <h3>{role} Login</h3>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        col1, col2, col3 = st.columns([1,2,1])
 
-        username = st.text_input(
-            "Username",
-            key="login_username"
-        )
+        with col2:
 
-        password = st.text_input(
-            "Password",
-            type="password",
-            key="login_password"
-        )
+            st.markdown(
+                f"""
+                <div class="login-card">
+                <h3>{role} Login</h3>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-        if st.button("Login"):
+            username = st.text_input(
+                "Username",
+                key="login_username"
+            )
 
-            users_df = load_users()
+            password = st.text_input(
+                "Password",
+                type="password",
+                key="login_password"
+            )
 
-            user = users_df[
-                (users_df["username"] == username)
-                & (users_df["password"] == password)
-                & (users_df["role"] == role)
-            ]
+            if st.button("Login"):
 
-            if not user.empty:
+                users_df = load_users()
 
-                st.session_state.logged_in = True
-                st.session_state.username = username
-                st.session_state.role = role
+                user = users_df[
+                    (users_df["username"] == username)
+                    & (users_df["password"] == password)
+                    & (users_df["role"] == role)
+                ]
 
-                st.rerun()
+                if not user.empty:
 
-            else:
+                    st.session_state.logged_in = True
+                    st.session_state.username = username
+                    st.session_state.role = role
 
-                st.error(
-                    "Invalid credentials or incorrect role."
-                )
+                    st.rerun()
+
+                else:
+
+                    st.error(
+                        "Invalid credentials or incorrect role."
+                    )
 
     # ---------------- SIGN UP ---------------- #
 
     with tab2:
 
-        st.markdown(
-            f"""
-            <div class="login-card">
-            <h3>{role} Registration</h3>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        col1, col2, col3 = st.columns([1,2,1])
 
-        new_username = st.text_input(
-            "Create Username"
-        )
+        with col2:
 
-        new_email = st.text_input(
-            "Email"
-        )
+            st.markdown(
+                f"""
+                <div class="login-card">
+                <h3>{role} Registration</h3>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-        new_password = st.text_input(
-            "Create Password",
-            type="password"
-        )
+            new_username = st.text_input(
+                "Create Username"
+            )
 
-        if st.button("Create Account"):
+            new_email = st.text_input(
+                "Email"
+            )
 
-            users_df = load_users()
+            new_password = st.text_input(
+                "Create Password",
+                type="password"
+            )
 
-            if new_username in users_df["username"].values:
+            if st.button("Create Account"):
 
-                st.error(
-                    "Username already exists"
-                )
+                users_df = load_users()
 
-            else:
+                if new_username in users_df["username"].values:
 
-                new_user = {
-                    "username": new_username,
-                    "password": new_password,
-                    "role": role,
-                    "email": new_email
-                }
+                    st.error(
+                        "Username already exists"
+                    )
 
-                users_df = pd.concat(
-                    [users_df, pd.DataFrame([new_user])],
-                    ignore_index=True
-                )
+                else:
 
-                save_users(users_df)
+                    new_user = {
+                        "username": new_username,
+                        "password": new_password,
+                        "role": role,
+                        "email": new_email
+                    }
 
-                st.success(
-                    f"{role} account created successfully."
-                )
+                    users_df = pd.concat(
+                        [users_df, pd.DataFrame([new_user])],
+                        ignore_index=True
+                    )
+
+                    save_users(users_df)
+
+                    st.success(
+                        f"{role} account created successfully."
+                    )
 
 
 def logout_button():
