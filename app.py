@@ -157,20 +157,23 @@ if not st.session_state.logged_in:
 
 # ---------------- HERO SECTION ---------------- #
 
-st.markdown("""
-<div class="hero-card">
+st.markdown(
+    """
+    <div class="hero-card">
 
-    <div class="hero-title">
-        Trainer Budget Approval System
+        <div class="hero-title">
+            Trainer Budget Approval System
+        </div>
+
+        <div class="hero-subtitle">
+            Enterprise workflow portal for training requests,
+            budget validation, approvals and invoice tracking.
+        </div>
+
     </div>
-
-    <div class="hero-subtitle">
-        Enterprise workflow portal for training requests,
-        budget validation, approvals and invoice tracking.
-    </div>
-
-</div>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
 # ---------------- SIDEBAR ---------------- #
 
