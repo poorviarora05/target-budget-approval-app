@@ -15,137 +15,114 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------------- CUSTOM CSS ---------------- #
+# ---------------- CSS ---------------- #
 
-st.markdown("""
-<style>
+st.markdown(
+    """
+    <style>
 
-#MainMenu {
-    visibility: hidden;
-}
+    #MainMenu {
+        visibility: hidden;
+    }
 
-footer {
-    visibility: hidden;
-}
+    footer {
+        visibility: hidden;
+    }
 
-.stApp {
-    background: linear-gradient(
-        135deg,
-        #F8FAFC,
-        #EEF2FF
-    );
-}
+    .stApp {
+        background: linear-gradient(
+            135deg,
+            #F8FAFC,
+            #EEF2FF
+        );
+    }
 
-section[data-testid="stSidebar"] {
-    background: linear-gradient(
-        180deg,
-        #0F172A,
-        #1E293B
-    );
-}
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(
+            180deg,
+            #0F172A,
+            #1E293B
+        );
+    }
 
-section[data-testid="stSidebar"] * {
-    color: white !important;
-}
+    section[data-testid="stSidebar"] * {
+        color: white !important;
+    }
 
-.hero-card {
-    background: linear-gradient(
-        135deg,
-        #4F46E5,
-        #7C3AED
-    );
+    .hero-card {
 
-    padding: 30px;
-    border-radius: 24px;
-    color: white;
-    margin-bottom: 28px;
+        background: linear-gradient(
+            135deg,
+            #4F46E5,
+            #7C3AED
+        );
 
-    box-shadow:
-        0 12px 32px rgba(79,70,229,0.25);
-}
+        padding: 30px;
 
-.hero-title {
-    font-size: 38px;
-    font-weight: 800;
-}
+        border-radius: 24px;
 
-.hero-subtitle {
-    font-size: 16px;
-    margin-top: 8px;
-    opacity: 0.92;
-}
+        color: white;
 
-.glass-card {
-    background: rgba(255,255,255,0.82);
+        margin-bottom: 28px;
 
-    backdrop-filter: blur(14px);
+        box-shadow:
+            0 12px 32px rgba(79,70,229,0.25);
+    }
 
-    border-radius: 22px;
+    .hero-title {
+        font-size: 38px;
+        font-weight: 800;
+    }
 
-    padding: 24px;
+    .hero-subtitle {
+        font-size: 16px;
+        margin-top: 8px;
+        opacity: 0.92;
+    }
 
-    border: 1px solid rgba(255,255,255,0.45);
+    .stButton button {
 
-    box-shadow:
-        0 10px 28px rgba(15,23,42,0.08);
+        border-radius: 12px;
 
-    margin-bottom: 20px;
-}
+        background: linear-gradient(
+            135deg,
+            #4F46E5,
+            #7C3AED
+        );
 
-.stButton button {
+        color: white;
 
-    border-radius: 12px;
+        border: none;
 
-    background: linear-gradient(
-        135deg,
-        #4F46E5,
-        #7C3AED
-    );
+        font-weight: 700;
+    }
 
-    color: white;
+    .stTextInput input,
+    .stNumberInput input,
+    .stTextArea textarea,
+    .stSelectbox div {
 
-    border: none;
+        border-radius: 12px !important;
+    }
 
-    font-weight: 700;
+    div[data-testid="metric-container"] {
 
-    padding: 0.55rem 1.2rem;
-}
+        background: white;
 
-.stButton button:hover {
+        border-radius: 18px;
 
-    background: linear-gradient(
-        135deg,
-        #4338CA,
-        #6D28D9
-    );
+        padding: 16px;
 
-    color: white;
-}
+        border: 1px solid #E5E7EB;
 
-.stTextInput input,
-.stNumberInput input,
-.stTextArea textarea,
-.stSelectbox div {
+        box-shadow:
+            0 8px 20px rgba(0,0,0,0.05);
+    }
 
-    border-radius: 12px !important;
-}
-
-div[data-testid="metric-container"] {
-
-    background: white;
-
-    border-radius: 18px;
-
-    padding: 16px;
-
-    border: 1px solid #E5E7EB;
-
-    box-shadow:
-        0 8px 20px rgba(0,0,0,0.05);
-}
-
-</style>
-""", unsafe_allow_html=True)
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # ---------------- SESSION ---------------- #
 
@@ -189,7 +166,7 @@ st.sidebar.markdown("---")
 
 logout_button()
 
-# ---------------- MENU OPTIONS ---------------- #
+# ---------------- MENU ---------------- #
 
 if role == "Requester":
 
@@ -226,7 +203,7 @@ else:
         "📊 Dashboard"
     ]
 
-# ---------------- SIDEBAR MENU ---------------- #
+# ---------------- NAVIGATION ---------------- #
 
 menu = st.sidebar.radio(
     "Navigation",
