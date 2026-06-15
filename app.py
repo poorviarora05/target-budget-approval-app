@@ -100,13 +100,36 @@ if not st.session_state.logged_in:
 
 # ---------------- HEADER ---------------- #
 
-st.title("📊 Trainer Budget Approval System")
+st.markdown("""
+<div style="
+    background: linear-gradient(135deg, #4F46E5, #7C3AED);
+    padding: 38px;
+    border-radius: 24px;
+    color: white;
+    margin-bottom: 25px;
+    box-shadow: 0 12px 30px rgba(79,70,229,0.25);
+">
 
-st.caption(
-    "Enterprise workflow portal for training requests, budget validation, approvals and invoice tracking."
-)
+    <h1 style="
+        margin:0;
+        font-size:52px;
+        font-weight:800;
+        letter-spacing:-1px;
+    ">
+        📊 Trainer Budget Approval System
+    </h1>
 
-st.markdown("---")
+    <p style="
+        margin-top:12px;
+        font-size:18px;
+        opacity:0.92;
+    ">
+        Enterprise workflow portal for training requests,
+        budget validation, approvals and invoice management.
+    </p>
+
+</div>
+""", unsafe_allow_html=True)
 
 # ---------------- SIDEBAR ---------------- #
 
