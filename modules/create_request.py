@@ -14,11 +14,11 @@ def show_create_request(username):
     except:
         requests_df = pd.DataFrame()
 
-    # DATE SECTION OUTSIDE FORM
     current_date = datetime.now().date()
 
     st.write("Request Date:", current_date)
 
+    # Dates
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -38,11 +38,10 @@ def show_create_request(username):
 
     with col3:
         st.metric(
-            "Total Training Days",
+            "Training Days",
             total_training_days
         )
 
-    # FORM STARTS
     with st.form("create_request_form"):
 
         college_name = st.text_input(
@@ -69,11 +68,41 @@ def show_create_request(username):
             "Trainer Name"
         )
 
-        st.subheader("Additional Requirements")
+        st.subheader("Training Budget Details")
 
         col4, col5 = st.columns(2)
 
         with col4:
+
+            total_hours = st.number_input(
+                "Total Training Hours",
+                min_value=1,
+                value=8
+            )
+
+            rate_per_hour = st.number_input(
+                "Rate Per Hour (₹)",
+                min_value=0,
+                value=3000
+            )
+
+        training_cost = (
+            total_hours *
+            rate_per_hour
+        )
+
+        with col5:
+
+            st.metric(
+                "Training Cost",
+                f"₹{training_cost:,.0f}"
+            )
+
+        st.subheader("Additional Requirements")
+
+        col6, col7 = st.columns(2)
+
+        with col6:
 
             stay_cost = st.number_input(
                 "Stay Cost (₹)",
@@ -87,7 +116,7 @@ def show_create_request(username):
                 value=0
             )
 
-        with col5:
+        with col7:
 
             food_cost = st.number_input(
                 "Food Cost (₹)",
@@ -108,8 +137,17 @@ def show_create_request(username):
             material_cost
         )
 
+        total_expected_budget = (
+            training_cost +
+            additional_cost
+        )
+
         st.info(
             f"Additional Cost: ₹{additional_cost:,.0f}"
+        )
+
+        st.success(
+            f"Total Expected Budget: ₹{total_expected_budget:,.0f}"
         )
 
         purpose = st.text_area(
@@ -132,11 +170,15 @@ def show_create_request(username):
                 "college_name": college_name,
                 "training_topic": training_topic,
                 "trainer_name": trainer_name,
+                "total_hours": total_hours,
+                "rate_per_hour": rate_per_hour,
+                "training_cost": training_cost,
                 "stay_cost": stay_cost,
                 "travel_cost": travel_cost,
                 "food_cost": food_cost,
                 "material_cost": material_cost,
                 "additional_cost": additional_cost,
+                "total_expected_budget": total_expected_budget,
                 "purpose": purpose,
                 "request_status": "Pending Mediator Review",
                 "created_at": datetime.now().strftime(
@@ -158,5 +200,5 @@ def show_create_request(username):
             )
 
             st.success(
-                "Request sent successfully!"
+                "Request submitted successfully!"
             )
