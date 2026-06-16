@@ -19,8 +19,24 @@ def show_create_request(username):
         current_date = datetime.now().date()
         st.write("Request Date:", current_date)
 
-        start_date = st.date_input("Training Start Date")
-        end_date = st.date_input("Training End Date")
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            start_date = st.date_input("Training Start Date")
+
+        with col2:
+            end_date = st.date_input("Training End Date")
+
+        with col3:
+            total_training_days = (end_date - start_date).days + 1
+
+            if total_training_days < 1:
+                total_training_days = 1
+
+            st.metric(
+                "Total Training Days",
+                total_training_days
+            )
 
         college_name = st.text_input("College / University Name")
 
@@ -42,56 +58,6 @@ def show_create_request(username):
 
         trainer_name = st.text_input("Trainer Name")
 
-        total_hours = st.number_input(
-            "Total Hours of Full Program",
-            min_value=1,
-            value=1
-        )
-
-        total_training_days = (end_date - start_date).days + 1
-
-        if total_training_days < 1:
-            st.error("End Date cannot be before Start Date.")
-            total_training_days = 1
-
-        st.metric(
-            "Total Training Days",
-            total_training_days
-)
-
-        rate_per_hour = st.number_input(
-            "Trainer Rate Per Hour",
-            min_value=0,
-            value=3000
-        )
-
-        st.subheader("Per Day Service Budget")
-
-        stay_per_day = st.number_input("Stay Budget Per Day", min_value=0, value=0)
-        travel_per_day = st.number_input("Travel Budget Per Day", min_value=0, value=0)
-        food_per_day = st.number_input("Food Budget Per Day", min_value=0, value=0)
-        material_per_day = st.number_input("Training Material Budget Per Day", min_value=0, value=0)
-        other_per_day = st.number_input("Other Budget Per Day", min_value=0, value=0)
-
-        trainer_cost = total_hours * rate_per_hour
-
-        stay_total = stay_per_day * total_training_days
-        travel_total = travel_per_day * total_training_days
-        food_total = food_per_day * total_training_days
-        material_total = material_per_day * total_training_days
-        other_total = other_per_day * total_training_days
-
-        estimated_budget = (
-            trainer_cost
-            + stay_total
-            + travel_total
-            + food_total
-            + material_total
-            + other_total
-        )
-
-        st.info(f"Estimated Total Budget: ₹{estimated_budget}")
-
         purpose = st.text_area("Purpose / Remarks")
 
         submit = st.form_submit_button("Submit Request")
@@ -107,21 +73,7 @@ def show_create_request(username):
                 "college_name": college_name,
                 "training_topic": training_topic,
                 "trainer_name": trainer_name,
-                "total_hours": total_hours,
                 "training_days": total_training_days,
-                "rate_per_hour": rate_per_hour,
-                "trainer_cost": trainer_cost,
-                "stay_per_day": stay_per_day,
-                "travel_per_day": travel_per_day,
-                "food_per_day": food_per_day,
-                "material_per_day": material_per_day,
-                "other_per_day": other_per_day,
-                "stay_total": stay_total,
-                "travel_total": travel_total,
-                "food_total": food_total,
-                "material_total": material_total,
-                "other_total": other_total,
-                "estimated_budget": estimated_budget,
                 "purpose": purpose,
                 "request_status": "Pending Mediator Review",
                 "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -132,6 +84,9 @@ def show_create_request(username):
                 ignore_index=True
             )
 
-            requests_df.to_csv(REQUESTS_FILE, index=False)
+            requests_df.to_csv(
+                REQUESTS_FILE,
+                index=False
+            )
 
             st.toast("Request sent successfully!")
