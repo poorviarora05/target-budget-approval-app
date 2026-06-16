@@ -22,20 +22,26 @@ def show_create_request(username):
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            start_date = st.date_input("Training Start Date")
+            start_date = st.date_input(
+                "Training Start Date",
+                key="start_date_input"
+            )
 
         with col2:
-            end_date = st.date_input("Training End Date")
+            end_date = st.date_input(
+                "Training End Date",
+                key="end_date_input"
+            )
+
+        training_days = (end_date - start_date).days + 1
+
+        if training_days < 1:
+            training_days = 1
 
         with col3:
-            total_training_days = (end_date - start_date).days + 1
-
-            if total_training_days < 1:
-                total_training_days = 1
-
             st.metric(
                 "Total Training Days",
-                total_training_days
+                training_days
             )
 
         college_name = st.text_input("College / University Name")
@@ -73,7 +79,7 @@ def show_create_request(username):
                 "college_name": college_name,
                 "training_topic": training_topic,
                 "trainer_name": trainer_name,
-                "training_days": total_training_days,
+                "training_days": training_days,
                 "purpose": purpose,
                 "request_status": "Pending Mediator Review",
                 "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
