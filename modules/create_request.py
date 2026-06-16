@@ -34,7 +34,7 @@ def show_create_request(username):
     with col3:
         st.metric("Training Days", total_training_days)
 
-    with st.form("create_request_form"):
+    with st.form("create_request_form", enter_to_submit=False):
 
         college_name = st.text_input("College / University Name")
 
