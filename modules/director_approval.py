@@ -36,9 +36,9 @@ def show_director_approval():
     request_table = pd.DataFrame({
         "Field": [
             "Request Date",
-            "Start Date",
-            "End Date",
-            "University",
+            "Training Start Date",
+            "Training End Date",
+            "College / University",
             "Training Topic",
             "Trainer Name",
             "Total Hours",
@@ -77,48 +77,34 @@ def show_director_approval():
     )
 
     number_of_trainers = st.number_input(
-    "Number of Trainers",
-    min_value=1,
-    value=1
-)
+        "Number of Trainers",
+        min_value=1,
+        value=1
+    )
 
-suggested_budget_per_program = (
-    available_budget / number_of_programs
-)
+    suggested_budget_per_program = available_budget / number_of_programs
+    suggested_budget_per_trainer = available_budget / number_of_trainers
 
-suggested_budget_per_trainer = (
-    available_budget / number_of_trainers
-)
+    st.info(f"Suggested Budget Per Program: ₹{suggested_budget_per_program:,.0f}")
+    st.info(f"Suggested Budget Per Trainer: ₹{suggested_budget_per_trainer:,.0f}")
 
-st.info(
-    f"Suggested Budget Per Program: ₹{suggested_budget_per_program:,.0f}"
-)
+    st.subheader("Program-wise Requirement & Budget Allocation")
 
-st.info(
-    f"Suggested Budget Per Trainer: ₹{suggested_budget_per_trainer:,.0f}"
-)
-
-    st.subheader("Program-wise Budget Allocation")
-
-    program_tabs = st.tabs(
-        [
-            f"Program {i}"
-            for i in range(1, int(number_of_programs) + 1)
-        ]
+    tabs = st.tabs(
+        [f"Program {i}" for i in range(1, int(number_of_programs) + 1)]
     )
 
     allocation_rows = []
 
-    for i, tab in enumerate(program_tabs, start=1):
+    for i, tab in enumerate(tabs, start=1):
 
         with tab:
 
-            st.markdown(f"### Program {i} Allocation")
+            st.markdown(f"### Program {i}")
 
             col1, col2 = st.columns(2)
 
             with col1:
-
                 program_name = st.text_input(
                     "Program Name",
                     key=f"program_name_{i}"
@@ -137,7 +123,6 @@ st.info(
                 )
 
             with col2:
-
                 stay_budget = st.number_input(
                     "Stay Budget",
                     min_value=0,
@@ -185,18 +170,14 @@ st.info(
             variance = suggested_budget_per_program - program_total
 
             if variance >= 0:
-                program_status = "Within Suggested Budget"
-                st.success(
-                    f"Program {i} is within suggested budget. Remaining: ₹{variance:,.0f}"
-                )
+                program_status = "Within Budget"
+                st.success(f"Program {i} remaining budget: ₹{variance:,.0f}")
             else:
-                program_status = "Over Suggested Budget"
-                st.error(
-                    f"Program {i} exceeds suggested budget by ₹{abs(variance):,.0f}"
-                )
+                program_status = "Over Budget"
+                st.error(f"Program {i} exceeds budget by ₹{abs(variance):,.0f}")
 
             allocation_rows.append({
-                "Program No.": i,
+                "Program No": i,
                 "Program Name": program_name,
                 "Trainer Name": trainer_name,
                 "Trainer Fee": trainer_fee,
@@ -214,7 +195,6 @@ st.info(
     allocation_df = pd.DataFrame(allocation_rows)
 
     total_allocated_budget = allocation_df["Program Total"].sum()
-
     remaining_budget = available_budget - total_allocated_budget
 
     st.subheader("Final Allocation Summary")
@@ -227,31 +207,16 @@ st.info(
 
     col1, col2, col3 = st.columns(3)
 
-    col1.metric(
-        "Available Budget",
-        f"₹{available_budget:,.0f}"
-    )
-
-    col2.metric(
-        "Total Allocated",
-        f"₹{total_allocated_budget:,.0f}"
-    )
-
-    col3.metric(
-        "Remaining / Loss",
-        f"₹{remaining_budget:,.0f}"
-    )
+    col1.metric("Available Budget", f"₹{available_budget:,.0f}")
+    col2.metric("Total Allocated", f"₹{total_allocated_budget:,.0f}")
+    col3.metric("Remaining / Loss", f"₹{remaining_budget:,.0f}")
 
     if remaining_budget >= 0:
         allocation_status = "Profitable / Within Budget"
-        st.success(
-            f"Overall allocation is profitable. Remaining budget: ₹{remaining_budget:,.0f}"
-        )
+        st.success(f"Overall allocation is within budget. Remaining: ₹{remaining_budget:,.0f}")
     else:
         allocation_status = "Loss / Over Budget"
-        st.error(
-            f"Overall allocation exceeds budget. Loss: ₹{abs(remaining_budget):,.0f}"
-        )
+        st.error(f"Overall allocation exceeds budget. Loss: ₹{abs(remaining_budget):,.0f}")
 
     st.subheader("Partner Decision")
 
@@ -259,10 +224,7 @@ st.info(
 
     decision = st.selectbox(
         "Decision",
-        [
-            "Approve",
-            "Reject"
-        ]
+        ["Approve", "Reject"]
     )
 
     if st.button("Submit Partner Decision"):
@@ -273,7 +235,9 @@ st.info(
 
         requests_df.loc[index, "available_budget"] = available_budget
         requests_df.loc[index, "number_of_programs"] = number_of_programs
+        requests_df.loc[index, "number_of_trainers"] = number_of_trainers
         requests_df.loc[index, "suggested_budget_per_program"] = suggested_budget_per_program
+        requests_df.loc[index, "suggested_budget_per_trainer"] = suggested_budget_per_trainer
         requests_df.loc[index, "total_allocated_budget"] = total_allocated_budget
         requests_df.loc[index, "remaining_budget"] = remaining_budget
         requests_df.loc[index, "allocation_status"] = allocation_status
