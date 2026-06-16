@@ -76,11 +76,27 @@ def show_director_approval():
         value=1
     )
 
-    suggested_budget_per_program = available_budget / number_of_programs
+    number_of_trainers = st.number_input(
+    "Number of Trainers",
+    min_value=1,
+    value=1
+)
 
-    st.info(
-        f"Suggested Budget Per Program: ₹{suggested_budget_per_program:,.0f}"
-    )
+suggested_budget_per_program = (
+    available_budget / number_of_programs
+)
+
+suggested_budget_per_trainer = (
+    available_budget / number_of_trainers
+)
+
+st.info(
+    f"Suggested Budget Per Program: ₹{suggested_budget_per_program:,.0f}"
+)
+
+st.info(
+    f"Suggested Budget Per Trainer: ₹{suggested_budget_per_trainer:,.0f}"
+)
 
     st.subheader("Program-wise Budget Allocation")
 
