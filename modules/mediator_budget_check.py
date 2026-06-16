@@ -4,6 +4,15 @@ import pandas as pd
 REQUESTS_FILE = "requests.csv"
 
 
+def safe_int(value, default=1):
+    try:
+        if pd.isna(value):
+            return default
+        return int(float(value))
+    except:
+        return default
+
+
 def show_mediator_budget_check():
 
     st.header("Approver Cost Estimation")
@@ -58,10 +67,15 @@ def show_mediator_budget_check():
 
     st.subheader("Training Duration")
 
+    default_days = safe_int(
+        selected_request.get("training_days", 1),
+        1
+    )
+
     training_days = st.number_input(
         "Total Training Days",
         min_value=1,
-        value=int(selected_request.get("training_days", 1))
+        value=default_days
     )
 
     hours_per_day = st.number_input(
@@ -86,11 +100,35 @@ def show_mediator_budget_check():
 
     st.markdown("### Per Day Requirement Cost")
 
-    stay_per_day = st.number_input("Stay Cost Per Day", min_value=0, value=0)
-    travel_per_day = st.number_input("Travel Cost Per Day", min_value=0, value=0)
-    food_per_day = st.number_input("Food Cost Per Day", min_value=0, value=0)
-    material_per_day = st.number_input("Training Material Cost Per Day", min_value=0, value=0)
-    other_per_day = st.number_input("Other Cost Per Day", min_value=0, value=0)
+    stay_per_day = st.number_input(
+        "Stay Cost Per Day",
+        min_value=0,
+        value=0
+    )
+
+    travel_per_day = st.number_input(
+        "Travel Cost Per Day",
+        min_value=0,
+        value=0
+    )
+
+    food_per_day = st.number_input(
+        "Food Cost Per Day",
+        min_value=0,
+        value=0
+    )
+
+    material_per_day = st.number_input(
+        "Training Material Cost Per Day",
+        min_value=0,
+        value=0
+    )
+
+    other_per_day = st.number_input(
+        "Other Cost Per Day",
+        min_value=0,
+        value=0
+    )
 
     stay_total = stay_per_day * training_days
     travel_total = travel_per_day * training_days
@@ -168,6 +206,29 @@ def show_mediator_budget_check():
             requests_df["request_id"] == request_id
         ].index[0]
 
+        cost_columns = [
+            "training_days",
+            "hours_per_day",
+            "total_hours",
+            "rate_per_hour",
+            "trainer_cost",
+            "stay_per_day",
+            "travel_per_day",
+            "food_per_day",
+            "material_per_day",
+            "other_per_day",
+            "stay_total",
+            "travel_total",
+            "food_total",
+            "material_total",
+            "other_total",
+            "estimated_budget"
+        ]
+
+        for col in cost_columns:
+            if col not in requests_df.columns:
+                requests_df[col] = 0
+
         requests_df.loc[index, "training_days"] = training_days
         requests_df.loc[index, "hours_per_day"] = hours_per_day
         requests_df.loc[index, "total_hours"] = total_hours
@@ -185,14 +246,20 @@ def show_mediator_budget_check():
         requests_df.loc[index, "food_total"] = food_total
         requests_df.loc[index, "material_total"] = material_total
         requests_df.loc[index, "other_total"] = other_total
-
         requests_df.loc[index, "estimated_budget"] = estimated_budget
 
         if "approver_remarks" not in requests_df.columns:
             requests_df["approver_remarks"] = ""
 
-        requests_df["approver_remarks"] = requests_df["approver_remarks"].astype(str)
-        requests_df.at[index, "approver_remarks"] = str(approver_remarks)
+        requests_df["approver_remarks"] = (
+            requests_df["approver_remarks"]
+            .astype(str)
+        )
+
+        requests_df.at[
+            index,
+            "approver_remarks"
+        ] = str(approver_remarks)
 
         if decision == "Approve and Send to Partner":
             requests_df.loc[index, "request_status"] = "Pending Director Approval"
@@ -201,4 +268,7 @@ def show_mediator_budget_check():
             requests_df.loc[index, "request_status"] = "Sent Back to Requester"
             st.warning("Request sent back to Requester.")
 
-        requests_df.to_csv(REQUESTS_FILE, index=False)
+        requests_df.to_csv(
+            REQUESTS_FILE,
+            index=False
+        )
