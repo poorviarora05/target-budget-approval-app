@@ -70,19 +70,17 @@ def show_mediator_budget_check():
         0
     )
 
+    st.subheader("Requester Budget Estimation")
+
     requester_table = pd.DataFrame({
         "Component": [
             "Training Days",
             "Total Hours",
             "Rate Per Hour",
             "Training Cost",
-            "Travel Mode",
-            "Going Travel Cost",
-            "Return Travel Cost",
             "Total Travel Cost",
             "Stay Cost",
             "Food Cost",
-            "Material Cost",
             "Total Requester Budget"
         ],
         "Requester Value": [
@@ -90,18 +88,13 @@ def show_mediator_budget_check():
             selected_request.get("total_hours", 0),
             f"₹{safe_int(selected_request.get('rate_per_hour', 0)):,.0f}",
             f"₹{safe_int(selected_request.get('training_cost', 0)):,.0f}",
-            selected_request.get("travel_mode", ""),
-            f"₹{safe_int(selected_request.get('travel_onward_cost', 0)):,.0f}",
-            f"₹{safe_int(selected_request.get('travel_return_cost', 0)):,.0f}",
-            f"₹{safe_int(selected_request.get('travel_cost', 0)):,.0f}",
+            f"₹{safe_int(selected_request.get('total_travel_cost', 0)):,.0f}",
             f"₹{safe_int(selected_request.get('stay_cost', 0)):,.0f}",
             f"₹{safe_int(selected_request.get('food_cost', 0)):,.0f}",
-            f"₹{safe_int(selected_request.get('material_cost', 0)):,.0f}",
             f"₹{requester_total_budget:,.0f}"
         ]
     })
 
-    st.subheader("Requester Budget Estimation")
     st.table(requester_table)
 
     st.subheader("Approver Budget Calculation")
@@ -131,37 +124,7 @@ def show_mediator_budget_check():
     st.info(f"Total Program Hours: {total_hours}")
     st.info(f"Trainer Cost: ₹{trainer_cost:,.0f}")
 
-    st.subheader("Approver Travel Details")
-
-    approver_travel_mode = st.selectbox(
-        "Travel Mode",
-        ["None", "Flight", "Train", "Car", "Bus"]
-    )
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        approver_travel_onward_cost = st.number_input(
-            "Going Travel Cost (₹)",
-            min_value=0,
-            value=0
-        )
-
-    with col2:
-        approver_travel_return_cost = st.number_input(
-            "Return Travel Cost (₹)",
-            min_value=0,
-            value=0
-        )
-
-    travel_total = (
-        approver_travel_onward_cost
-        + approver_travel_return_cost
-    )
-
-    st.info(f"Total Travel Cost: ₹{travel_total:,.0f}")
-
-    st.subheader("Per Day Requirement Cost")
+    st.subheader("Additional Requirements Cost")
 
     stay_per_day = st.number_input(
         "Stay Cost Per Day",
@@ -175,22 +138,61 @@ def show_mediator_budget_check():
         value=0
     )
 
-    material_per_day = st.number_input(
-        "Training Material Cost Per Day",
+    st.subheader("Travel Cost Details")
+
+    approver_local_travel_per_day = st.number_input(
+        "Local Taxi / Daily Travel Cost Per Day (₹)",
         min_value=0,
         value=0
     )
 
+    approver_local_travel_total = (
+        approver_local_travel_per_day * training_days
+    )
+
+    approver_outstation_travel_mode = st.selectbox(
+        "Outstation Travel Mode",
+        ["Flight", "Train", "Bus", "Car"]
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        approver_going_travel_cost = st.number_input(
+            "Going Travel Cost (₹)",
+            min_value=0,
+            value=0
+        )
+
+    with col2:
+        approver_return_travel_cost = st.number_input(
+            "Return Travel Cost (₹)",
+            min_value=0,
+            value=0
+        )
+
+    approver_outstation_travel_total = (
+        approver_going_travel_cost + approver_return_travel_cost
+    )
+
+    approver_total_travel_cost = (
+        approver_local_travel_total + approver_outstation_travel_total
+    )
+
+    st.info(f"Local Travel Total: ₹{approver_local_travel_total:,.0f}")
+    st.info(
+        f"Outstation Travel ({approver_outstation_travel_mode}): ₹{approver_outstation_travel_total:,.0f}"
+    )
+    st.success(f"Total Travel Cost: ₹{approver_total_travel_cost:,.0f}")
+
     stay_total = stay_per_day * training_days
     food_total = food_per_day * training_days
-    material_total = material_per_day * training_days
 
     approver_estimated_budget = (
         trainer_cost
-        + travel_total
+        + approver_total_travel_cost
         + stay_total
         + food_total
-        + material_total
     )
 
     st.subheader("Approver Cost Breakdown")
@@ -198,34 +200,30 @@ def show_mediator_budget_check():
     cost_table = pd.DataFrame({
         "Cost Component": [
             "Trainer Fee",
-            "Travel Cost",
             "Stay Cost",
             "Food Cost",
-            "Training Material Cost",
+            "Travel Cost",
             "Total Approver Budget"
         ],
         "Rate / Details": [
             f"₹{rate_per_hour:,.0f} per hour",
-            approver_travel_mode,
             f"₹{stay_per_day:,.0f} per day",
             f"₹{food_per_day:,.0f} per day",
-            f"₹{material_per_day:,.0f} per day",
+            "Local + Outstation",
             "-"
         ],
         "Days / Hours": [
             f"{total_hours} hours",
-            "Going + Return",
             f"{training_days} days",
             f"{training_days} days",
-            f"{training_days} days",
+            "Daily + Going/Return",
             "-"
         ],
         "Total Amount": [
             f"₹{trainer_cost:,.0f}",
-            f"₹{travel_total:,.0f}",
             f"₹{stay_total:,.0f}",
             f"₹{food_total:,.0f}",
-            f"₹{material_total:,.0f}",
+            f"₹{approver_total_travel_cost:,.0f}",
             f"₹{approver_estimated_budget:,.0f}"
         ]
     })
@@ -239,22 +237,13 @@ def show_mediator_budget_check():
     col3, col4, col5 = st.columns(3)
 
     with col3:
-        st.metric(
-            "Requester Budget",
-            f"₹{requester_total_budget:,.0f}"
-        )
+        st.metric("Requester Budget", f"₹{requester_total_budget:,.0f}")
 
     with col4:
-        st.metric(
-            "Approver Budget",
-            f"₹{approver_estimated_budget:,.0f}"
-        )
+        st.metric("Approver Budget", f"₹{approver_estimated_budget:,.0f}")
 
     with col5:
-        st.metric(
-            "Difference",
-            f"₹{difference:,.0f}"
-        )
+        st.metric("Difference", f"₹{difference:,.0f}")
 
     if difference > 0:
         st.warning(
@@ -291,16 +280,17 @@ def show_mediator_budget_check():
             "total_hours",
             "rate_per_hour",
             "trainer_cost",
-            "approver_travel_mode",
-            "approver_travel_onward_cost",
-            "approver_travel_return_cost",
-            "travel_total",
             "stay_per_day",
             "food_per_day",
-            "material_per_day",
+            "approver_local_travel_per_day",
+            "approver_local_travel_total",
+            "approver_outstation_travel_mode",
+            "approver_going_travel_cost",
+            "approver_return_travel_cost",
+            "approver_outstation_travel_total",
+            "approver_total_travel_cost",
             "stay_total",
             "food_total",
-            "material_total",
             "estimated_budget",
             "budget_difference"
         ]
@@ -315,19 +305,19 @@ def show_mediator_budget_check():
         requests_df.loc[index, "rate_per_hour"] = rate_per_hour
         requests_df.loc[index, "trainer_cost"] = trainer_cost
 
-        requests_df.loc[index, "approver_travel_mode"] = approver_travel_mode
-        requests_df.loc[index, "approver_travel_onward_cost"] = approver_travel_onward_cost
-        requests_df.loc[index, "approver_travel_return_cost"] = approver_travel_return_cost
-        requests_df.loc[index, "travel_total"] = travel_total
-
         requests_df.loc[index, "stay_per_day"] = stay_per_day
         requests_df.loc[index, "food_per_day"] = food_per_day
-        requests_df.loc[index, "material_per_day"] = material_per_day
+
+        requests_df.loc[index, "approver_local_travel_per_day"] = approver_local_travel_per_day
+        requests_df.loc[index, "approver_local_travel_total"] = approver_local_travel_total
+        requests_df.loc[index, "approver_outstation_travel_mode"] = approver_outstation_travel_mode
+        requests_df.loc[index, "approver_going_travel_cost"] = approver_going_travel_cost
+        requests_df.loc[index, "approver_return_travel_cost"] = approver_return_travel_cost
+        requests_df.loc[index, "approver_outstation_travel_total"] = approver_outstation_travel_total
+        requests_df.loc[index, "approver_total_travel_cost"] = approver_total_travel_cost
 
         requests_df.loc[index, "stay_total"] = stay_total
         requests_df.loc[index, "food_total"] = food_total
-        requests_df.loc[index, "material_total"] = material_total
-
         requests_df.loc[index, "estimated_budget"] = approver_estimated_budget
         requests_df.loc[index, "budget_difference"] = difference
 
