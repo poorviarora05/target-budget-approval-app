@@ -3,7 +3,7 @@ from auth import init_session, login_page, logout_button
 from modules.dashboard import show_dashboard
 from modules.create_request import show_create_request
 from modules.mediator_budget_check import show_mediator_budget_check
-from modules.director_approval import show_director_approval
+from modules.director_approval import show_director_approval # from modules.director_approval import show_director_approval
 from modules.submit_invoice import show_submit_invoice
 from modules.invoice_approval import show_invoice_approval
 
@@ -123,7 +123,7 @@ elif menu == "✅ Approver Review":
     show_mediator_budget_check()
 
 elif menu == "✅ Partner Approval":
-    show_director_approval()
+    st.info("Partner module under development")
 
 elif menu == "📤 Submit Invoice":
     show_submit_invoice()
