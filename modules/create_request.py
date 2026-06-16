@@ -18,18 +18,13 @@ def show_create_request(username):
 
     st.write("Request Date:", current_date)
 
-    # Dates
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        start_date = st.date_input(
-            "Training Start Date"
-        )
+        start_date = st.date_input("Training Start Date")
 
     with col2:
-        end_date = st.date_input(
-            "Training End Date"
-        )
+        end_date = st.date_input("Training End Date")
 
     total_training_days = max(
         (end_date - start_date).days + 1,
@@ -37,16 +32,11 @@ def show_create_request(username):
     )
 
     with col3:
-        st.metric(
-            "Training Days",
-            total_training_days
-        )
+        st.metric("Training Days", total_training_days)
 
     with st.form("create_request_form"):
 
-        college_name = st.text_input(
-            "College / University Name"
-        )
+        college_name = st.text_input("College / University Name")
 
         training_topic = st.selectbox(
             "Training Topic",
@@ -64,46 +54,35 @@ def show_create_request(username):
             ]
         )
 
-        trainer_name = st.text_input(
-            "Trainer Name"
-        )
+        trainer_name = st.text_input("Trainer Name")
 
         st.subheader("Training Budget Details")
 
         col4, col5 = st.columns(2)
 
         with col4:
-
             total_hours = st.number_input(
                 "Total Training Hours",
                 min_value=1,
                 value=8
             )
 
+        with col5:
             rate_per_hour = st.number_input(
                 "Rate Per Hour (₹)",
                 min_value=0,
                 value=3000
             )
 
-        training_cost = (
-            total_hours *
-            rate_per_hour
-        )
+        training_cost = total_hours * rate_per_hour
 
-        with col5:
+        st.info(f"Training Cost: ₹{training_cost:,.0f}")
 
-            st.metric(
-                "Training Cost",
-                f"₹{training_cost:,.0f}"
-            )
-
-        st.subheader("Additional Requirements")
+        st.subheader("Additional Requirements Cost")
 
         col6, col7 = st.columns(2)
 
         with col6:
-
             stay_cost = st.number_input(
                 "Stay Cost (₹)",
                 min_value=0,
@@ -117,7 +96,6 @@ def show_create_request(username):
             )
 
         with col7:
-
             food_cost = st.number_input(
                 "Food Cost (₹)",
                 min_value=0,
@@ -131,32 +109,23 @@ def show_create_request(username):
             )
 
         additional_cost = (
-            stay_cost +
-            travel_cost +
-            food_cost +
-            material_cost
+            stay_cost
+            + travel_cost
+            + food_cost
+            + material_cost
         )
 
         total_expected_budget = (
-            training_cost +
-            additional_cost
+            training_cost
+            + additional_cost
         )
 
-        st.info(
-            f"Additional Cost: ₹{additional_cost:,.0f}"
-        )
+        st.info(f"Additional Cost: ₹{additional_cost:,.0f}")
+        st.success(f"Total Expected Budget: ₹{total_expected_budget:,.0f}")
 
-        st.success(
-            f"Total Expected Budget: ₹{total_expected_budget:,.0f}"
-        )
+        purpose = st.text_area("Purpose / Remarks")
 
-        purpose = st.text_area(
-            "Purpose / Remarks"
-        )
-
-        submit = st.form_submit_button(
-            "Submit Request"
-        )
+        submit = st.form_submit_button("Submit Request")
 
         if submit:
 
@@ -181,16 +150,11 @@ def show_create_request(username):
                 "total_expected_budget": total_expected_budget,
                 "purpose": purpose,
                 "request_status": "Pending Mediator Review",
-                "created_at": datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                )
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
 
             requests_df = pd.concat(
-                [
-                    requests_df,
-                    pd.DataFrame([new_request])
-                ],
+                [requests_df, pd.DataFrame([new_request])],
                 ignore_index=True
             )
 
@@ -199,6 +163,4 @@ def show_create_request(username):
                 index=False
             )
 
-            st.success(
-                "Request submitted successfully!"
-            )
+            st.success("Request sent successfully!")
