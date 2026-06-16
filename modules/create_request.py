@@ -15,7 +15,6 @@ def show_create_request(username):
         requests_df = pd.DataFrame()
 
     current_date = datetime.now().date()
-
     st.write("Request Date:", current_date)
 
     col1, col2, col3 = st.columns(3)
@@ -33,6 +32,32 @@ def show_create_request(username):
 
     with col3:
         st.metric("Training Days", total_training_days)
+
+    st.markdown("---")
+
+    college_name = st.text_input("College / University Name")
+
+    training_topic = st.selectbox(
+        "Training Topic",
+        [
+            "Artificial Intelligence",
+            "Machine Learning",
+            "Generative AI",
+            "Data Analytics",
+            "Cyber Security",
+            "Cloud Computing",
+            "Python Programming",
+            "Soft Skills",
+            "Finance & Taxation",
+            "Industry Expert Session"
+        ]
+    )
+
+    trainer_name = st.text_input("Trainer Name")
+
+    purpose = st.text_area("Purpose / Remarks")
+
+    st.markdown("---")
 
     st.subheader("Training Budget Details")
 
@@ -101,66 +126,42 @@ def show_create_request(username):
     st.info(f"Additional Cost: ₹{additional_cost:,.0f}")
     st.success(f"Total Expected Budget: ₹{total_expected_budget:,.0f}")
 
-    with st.form("create_request_form", enter_to_submit=False):
+    st.markdown("---")
 
-        college_name = st.text_input("College / University Name")
+    if st.button("Submit Request"):
 
-        training_topic = st.selectbox(
-            "Training Topic",
-            [
-                "Artificial Intelligence",
-                "Machine Learning",
-                "Generative AI",
-                "Data Analytics",
-                "Cyber Security",
-                "Cloud Computing",
-                "Python Programming",
-                "Soft Skills",
-                "Finance & Taxation",
-                "Industry Expert Session"
-            ]
+        new_request = {
+            "request_id": f"REQ{len(requests_df) + 1:03d}",
+            "created_by": username,
+            "request_date": str(current_date),
+            "start_date": str(start_date),
+            "end_date": str(end_date),
+            "training_days": total_training_days,
+            "college_name": college_name,
+            "training_topic": training_topic,
+            "trainer_name": trainer_name,
+            "total_hours": total_hours,
+            "rate_per_hour": rate_per_hour,
+            "training_cost": training_cost,
+            "stay_cost": stay_cost,
+            "travel_cost": travel_cost,
+            "food_cost": food_cost,
+            "material_cost": material_cost,
+            "additional_cost": additional_cost,
+            "total_expected_budget": total_expected_budget,
+            "purpose": purpose,
+            "request_status": "Pending Mediator Review",
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+        requests_df = pd.concat(
+            [requests_df, pd.DataFrame([new_request])],
+            ignore_index=True
         )
 
-        trainer_name = st.text_input("Trainer Name")
+        requests_df.to_csv(
+            REQUESTS_FILE,
+            index=False
+        )
 
-        purpose = st.text_area("Purpose / Remarks")
-
-        submit = st.form_submit_button("Submit Request")
-
-        if submit:
-
-            new_request = {
-                "request_id": f"REQ{len(requests_df) + 1:03d}",
-                "created_by": username,
-                "request_date": str(current_date),
-                "start_date": str(start_date),
-                "end_date": str(end_date),
-                "training_days": total_training_days,
-                "college_name": college_name,
-                "training_topic": training_topic,
-                "trainer_name": trainer_name,
-                "total_hours": total_hours,
-                "rate_per_hour": rate_per_hour,
-                "training_cost": training_cost,
-                "stay_cost": stay_cost,
-                "travel_cost": travel_cost,
-                "food_cost": food_cost,
-                "material_cost": material_cost,
-                "additional_cost": additional_cost,
-                "total_expected_budget": total_expected_budget,
-                "purpose": purpose,
-                "request_status": "Pending Mediator Review",
-                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-
-            requests_df = pd.concat(
-                [requests_df, pd.DataFrame([new_request])],
-                ignore_index=True
-            )
-
-            requests_df.to_csv(
-                REQUESTS_FILE,
-                index=False
-            )
-
-            st.success("Request sent successfully!")
+        st.success("Request sent successfully!")
