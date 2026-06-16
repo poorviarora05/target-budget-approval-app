@@ -75,35 +75,46 @@ def show_create_request(username):
         )
 
     training_cost = total_hours * rate_per_hour
-
     st.info(f"Training Cost: ₹{training_cost:,.0f}")
 
-    st.subheader("Travel Details")
+    st.subheader("Travel Cost Details")
 
-    travel_mode = st.selectbox(
-        "Travel Mode",
+    local_travel_per_day = st.number_input(
+        "Local Taxi / Daily Travel Cost Per Day (₹)",
+        min_value=0,
+        value=0
+    )
+
+    local_travel_total = local_travel_per_day * total_training_days
+
+    outstation_travel_mode = st.selectbox(
+        "Aane-Jaane Travel Mode",
         ["None", "Flight", "Train", "Car", "Bus"]
     )
 
     col6, col7 = st.columns(2)
 
     with col6:
-        travel_onward_cost = st.number_input(
+        going_travel_cost = st.number_input(
             "Going Travel Cost (₹)",
             min_value=0,
             value=0
         )
 
     with col7:
-        travel_return_cost = st.number_input(
+        return_travel_cost = st.number_input(
             "Return Travel Cost (₹)",
             min_value=0,
             value=0
         )
 
-    travel_cost = travel_onward_cost + travel_return_cost
+    outstation_travel_total = going_travel_cost + return_travel_cost
 
-    st.info(f"Total Travel Cost: ₹{travel_cost:,.0f}")
+    total_travel_cost = local_travel_total + outstation_travel_total
+
+    st.info(f"Local Travel Total: ₹{local_travel_total:,.0f}")
+    st.info(f"Aane-Jaane Travel Total: ₹{outstation_travel_total:,.0f}")
+    st.success(f"Total Travel Cost: ₹{total_travel_cost:,.0f}")
 
     st.subheader("Additional Requirements Cost")
 
@@ -131,15 +142,12 @@ def show_create_request(username):
 
     additional_cost = (
         stay_cost
-        + travel_cost
+        + total_travel_cost
         + food_cost
         + material_cost
     )
 
-    total_expected_budget = (
-        training_cost
-        + additional_cost
-    )
+    total_expected_budget = training_cost + additional_cost
 
     st.info(f"Additional Cost: ₹{additional_cost:,.0f}")
     st.success(f"Total Expected Budget: ₹{total_expected_budget:,.0f}")
@@ -161,10 +169,13 @@ def show_create_request(username):
             "total_hours": total_hours,
             "rate_per_hour": rate_per_hour,
             "training_cost": training_cost,
-            "travel_mode": travel_mode,
-            "travel_onward_cost": travel_onward_cost,
-            "travel_return_cost": travel_return_cost,
-            "travel_cost": travel_cost,
+            "local_travel_per_day": local_travel_per_day,
+            "local_travel_total": local_travel_total,
+            "outstation_travel_mode": outstation_travel_mode,
+            "going_travel_cost": going_travel_cost,
+            "return_travel_cost": return_travel_cost,
+            "outstation_travel_total": outstation_travel_total,
+            "total_travel_cost": total_travel_cost,
             "stay_cost": stay_cost,
             "food_cost": food_cost,
             "material_cost": material_cost,
