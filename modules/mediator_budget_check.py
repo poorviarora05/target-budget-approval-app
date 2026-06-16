@@ -13,6 +13,15 @@ def safe_int(value, default=1):
         return default
 
 
+def safe_float(value, default=0):
+    try:
+        if pd.isna(value):
+            return default
+        return float(value)
+    except:
+        return default
+
+
 def show_mediator_budget_check():
 
     st.header("Approver Cost Estimation")
@@ -40,6 +49,11 @@ def show_mediator_budget_check():
         pending_requests["request_id"] == request_id
     ].iloc[0]
 
+    requester_budget = safe_float(
+        selected_request.get("estimated_budget", 0),
+        0
+    )
+
     st.subheader("Request Details")
 
     request_table = pd.DataFrame({
@@ -50,6 +64,7 @@ def show_mediator_budget_check():
             "College / University",
             "Training Topic",
             "Trainer Name",
+            "Requester Estimated Budget",
             "Purpose / Remarks"
         ],
         "Details": [
@@ -59,6 +74,7 @@ def show_mediator_budget_check():
             selected_request.get("college_name", ""),
             selected_request.get("training_topic", ""),
             selected_request.get("trainer_name", ""),
+            f"₹{requester_budget:,.0f}",
             selected_request.get("purpose", "")
         ]
     })
@@ -136,7 +152,7 @@ def show_mediator_budget_check():
     material_total = material_per_day * training_days
     other_total = other_per_day * training_days
 
-    estimated_budget = (
+    approver_estimated_budget = (
         trainer_cost
         + stay_total
         + travel_total
@@ -155,7 +171,7 @@ def show_mediator_budget_check():
             "Food Cost",
             "Training Material Cost",
             "Other Cost",
-            "Total Estimated Budget"
+            "Approver Estimated Budget"
         ],
         "Per Day / Rate": [
             f"₹{rate_per_hour:,.0f} per hour",
@@ -182,11 +198,46 @@ def show_mediator_budget_check():
             f"₹{food_total:,.0f}",
             f"₹{material_total:,.0f}",
             f"₹{other_total:,.0f}",
-            f"₹{estimated_budget:,.0f}"
+            f"₹{approver_estimated_budget:,.0f}"
         ]
     })
 
     st.table(cost_table)
+
+    st.subheader("Requester Budget vs Approver Estimate")
+
+    difference = requester_budget - approver_estimated_budget
+
+    comparison_table = pd.DataFrame({
+        "Particulars": [
+            "Requester Estimated Budget",
+            "Approver Estimated Budget",
+            "Difference"
+        ],
+        "Amount": [
+            f"₹{requester_budget:,.0f}",
+            f"₹{approver_estimated_budget:,.0f}",
+            f"₹{difference:,.0f}"
+        ]
+    })
+
+    st.table(comparison_table)
+
+    if requester_budget == 0:
+        comparison_status = "No Requester Budget Provided"
+        st.warning("Requester budget is not available. Approver estimate will be treated as final estimate.")
+
+    elif approver_estimated_budget <= requester_budget:
+        comparison_status = "Within Requester Budget"
+        st.success(
+            f"Approver estimate is within requester budget. Remaining: ₹{difference:,.0f}"
+        )
+
+    else:
+        comparison_status = "Exceeds Requester Budget"
+        st.error(
+            f"Approver estimate exceeds requester budget by ₹{abs(difference):,.0f}"
+        )
 
     st.subheader("Approver Decision")
 
@@ -222,7 +273,11 @@ def show_mediator_budget_check():
             "food_total",
             "material_total",
             "other_total",
-            "estimated_budget"
+            "requester_budget",
+            "approver_estimated_budget",
+            "estimated_budget",
+            "budget_difference",
+            "budget_comparison_status"
         ]
 
         for col in cost_columns:
@@ -246,7 +301,15 @@ def show_mediator_budget_check():
         requests_df.loc[index, "food_total"] = food_total
         requests_df.loc[index, "material_total"] = material_total
         requests_df.loc[index, "other_total"] = other_total
-        requests_df.loc[index, "estimated_budget"] = estimated_budget
+
+        requests_df.loc[index, "requester_budget"] = requester_budget
+        requests_df.loc[index, "approver_estimated_budget"] = approver_estimated_budget
+
+        # Partner page reads estimated_budget, so we save approver estimate there also.
+        requests_df.loc[index, "estimated_budget"] = approver_estimated_budget
+
+        requests_df.loc[index, "budget_difference"] = difference
+        requests_df.loc[index, "budget_comparison_status"] = comparison_status
 
         if "approver_remarks" not in requests_df.columns:
             requests_df["approver_remarks"] = ""
