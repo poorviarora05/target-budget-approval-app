@@ -34,6 +34,73 @@ def show_create_request(username):
     with col3:
         st.metric("Training Days", total_training_days)
 
+    st.subheader("Training Budget Details")
+
+    col4, col5 = st.columns(2)
+
+    with col4:
+        total_hours = st.number_input(
+            "Total Training Hours",
+            min_value=1,
+            value=8
+        )
+
+    with col5:
+        rate_per_hour = st.number_input(
+            "Rate Per Hour (₹)",
+            min_value=0,
+            value=3000
+        )
+
+    training_cost = total_hours * rate_per_hour
+
+    st.info(f"Training Cost: ₹{training_cost:,.0f}")
+
+    st.subheader("Additional Requirements Cost")
+
+    col6, col7 = st.columns(2)
+
+    with col6:
+        stay_cost = st.number_input(
+            "Stay Cost (₹)",
+            min_value=0,
+            value=0
+        )
+
+        travel_cost = st.number_input(
+            "Travel Cost (₹)",
+            min_value=0,
+            value=0
+        )
+
+    with col7:
+        food_cost = st.number_input(
+            "Food Cost (₹)",
+            min_value=0,
+            value=0
+        )
+
+        material_cost = st.number_input(
+            "Training Material Cost (₹)",
+            min_value=0,
+            value=0
+        )
+
+    additional_cost = (
+        stay_cost
+        + travel_cost
+        + food_cost
+        + material_cost
+    )
+
+    total_expected_budget = (
+        training_cost
+        + additional_cost
+    )
+
+    st.info(f"Additional Cost: ₹{additional_cost:,.0f}")
+    st.success(f"Total Expected Budget: ₹{total_expected_budget:,.0f}")
+
     with st.form("create_request_form", enter_to_submit=False):
 
         college_name = st.text_input("College / University Name")
@@ -55,73 +122,6 @@ def show_create_request(username):
         )
 
         trainer_name = st.text_input("Trainer Name")
-
-        st.subheader("Training Budget Details")
-
-        col4, col5 = st.columns(2)
-
-        with col4:
-            total_hours = st.number_input(
-                "Total Training Hours",
-                min_value=1,
-                value=8
-            )
-
-        with col5:
-            rate_per_hour = st.number_input(
-                "Rate Per Hour (₹)",
-                min_value=0,
-                value=3000
-            )
-
-        training_cost = total_hours * rate_per_hour
-
-        st.info(f"Training Cost: ₹{training_cost:,.0f}")
-
-        st.subheader("Additional Requirements Cost")
-
-        col6, col7 = st.columns(2)
-
-        with col6:
-            stay_cost = st.number_input(
-                "Stay Cost (₹)",
-                min_value=0,
-                value=0
-            )
-
-            travel_cost = st.number_input(
-                "Travel Cost (₹)",
-                min_value=0,
-                value=0
-            )
-
-        with col7:
-            food_cost = st.number_input(
-                "Food Cost (₹)",
-                min_value=0,
-                value=0
-            )
-
-            material_cost = st.number_input(
-                "Training Material Cost (₹)",
-                min_value=0,
-                value=0
-            )
-
-        additional_cost = (
-            stay_cost
-            + travel_cost
-            + food_cost
-            + material_cost
-        )
-
-        total_expected_budget = (
-            training_cost
-            + additional_cost
-        )
-
-        st.info(f"Additional Cost: ₹{additional_cost:,.0f}")
-        st.success(f"Total Expected Budget: ₹{total_expected_budget:,.0f}")
 
         purpose = st.text_area("Purpose / Remarks")
 
