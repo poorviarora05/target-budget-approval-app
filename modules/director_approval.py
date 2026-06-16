@@ -4,6 +4,15 @@ import pandas as pd
 REQUESTS_FILE = "requests.csv"
 
 
+def safe_number(value):
+    try:
+        if pd.isna(value):
+            return 0
+        return float(value)
+    except:
+        return 0
+
+
 def show_director_approval():
 
     st.header("Partner Approval & Budget Review")
@@ -36,9 +45,9 @@ def show_director_approval():
     request_table = pd.DataFrame({
         "Field": [
             "Request Date",
-            "Start Date",
-            "End Date",
-            "University / College",
+            "Training Start Date",
+            "Training End Date",
+            "College / University",
             "Training Topic",
             "Trainer Name",
             "Total Hours",
@@ -62,13 +71,13 @@ def show_director_approval():
 
     st.subheader("Cost Estimate Received from Approver")
 
-    trainer_cost = float(selected_request.get("trainer_cost", 0))
-    stay_total = float(selected_request.get("stay_total", 0))
-    travel_total = float(selected_request.get("travel_total", 0))
-    food_total = float(selected_request.get("food_total", 0))
-    material_total = float(selected_request.get("material_total", 0))
-    other_total = float(selected_request.get("other_total", 0))
-    estimated_budget = float(selected_request.get("estimated_budget", 0))
+    trainer_cost = safe_number(selected_request.get("trainer_cost", 0))
+    stay_total = safe_number(selected_request.get("stay_total", 0))
+    travel_total = safe_number(selected_request.get("travel_total", 0))
+    food_total = safe_number(selected_request.get("food_total", 0))
+    material_total = safe_number(selected_request.get("material_total", 0))
+    other_total = safe_number(selected_request.get("other_total", 0))
+    estimated_budget = safe_number(selected_request.get("estimated_budget", 0))
 
     cost_table = pd.DataFrame({
         "Cost Component": [
@@ -103,11 +112,10 @@ def show_director_approval():
 
     remaining_budget = available_budget - estimated_budget
 
-    utilization_percentage = (
-        estimated_budget / available_budget * 100
-        if available_budget > 0
-        else 0
-    )
+    if available_budget > 0:
+        utilization_percentage = (estimated_budget / available_budget) * 100
+    else:
+        utilization_percentage = 0
 
     budget_health_score = max(
         0,
@@ -116,29 +124,15 @@ def show_director_approval():
 
     col1, col2, col3 = st.columns(3)
 
-    col1.metric(
-        "Available Budget",
-        f"₹{available_budget:,.0f}"
-    )
-
-    col2.metric(
-        "Estimated Cost",
-        f"₹{estimated_budget:,.0f}"
-    )
-
-    col3.metric(
-        "Remaining / Loss",
-        f"₹{remaining_budget:,.0f}"
-    )
+    col1.metric("Available Budget", f"₹{available_budget:,.0f}")
+    col2.metric("Estimated Cost", f"₹{estimated_budget:,.0f}")
+    col3.metric("Remaining / Loss", f"₹{remaining_budget:,.0f}")
 
     st.subheader("Smart Budget Insights")
 
     col1, col2, col3 = st.columns(3)
 
-    col1.metric(
-        "Budget Health Score",
-        f"{budget_health_score}/100"
-    )
+    col1.metric("Budget Health Score", f"{budget_health_score}/100")
 
     if utilization_percentage <= 80:
         risk_level = "Low Risk"
@@ -195,4 +189,9 @@ def show_director_approval():
             requests_df.loc[index, "request_status"] = "Rejected"
             st.error("Partner rejected the request.")
 
-        requests_df.to_csv(REQUESTS_FILE, index=False)
+        requests_df.to_csv(
+            REQUESTS_FILE,
+            index=False
+        )
+
+        st.rerun()
