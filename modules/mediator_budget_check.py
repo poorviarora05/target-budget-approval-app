@@ -41,8 +41,6 @@ def show_mediator_budget_check():
             "College / University",
             "Training Topic",
             "Trainer Name",
-            "Total Hours",
-            "Training Days",
             "Purpose / Remarks"
         ],
         "Details": [
@@ -52,16 +50,29 @@ def show_mediator_budget_check():
             selected_request.get("college_name", ""),
             selected_request.get("training_topic", ""),
             selected_request.get("trainer_name", ""),
-            selected_request.get("total_hours", ""),
-            selected_request.get("training_days", ""),
             selected_request.get("purpose", "")
         ]
     })
 
     st.table(request_table)
 
-    total_hours = int(selected_request.get("total_hours", 1))
-    training_days = int(selected_request.get("training_days", 1))
+    st.subheader("Training Duration")
+
+    training_days = st.number_input(
+        "Total Training Days",
+        min_value=1,
+        value=int(selected_request.get("training_days", 1))
+    )
+
+    hours_per_day = st.number_input(
+        "Hours Per Day",
+        min_value=1,
+        value=6
+    )
+
+    total_hours = training_days * hours_per_day
+
+    st.info(f"Total Program Hours: {total_hours}")
 
     st.subheader("Approver Cost Calculation")
 
@@ -75,35 +86,11 @@ def show_mediator_budget_check():
 
     st.markdown("### Per Day Requirement Cost")
 
-    stay_per_day = st.number_input(
-        "Stay Cost Per Day",
-        min_value=0,
-        value=0
-    )
-
-    travel_per_day = st.number_input(
-        "Travel Cost Per Day",
-        min_value=0,
-        value=0
-    )
-
-    food_per_day = st.number_input(
-        "Food Cost Per Day",
-        min_value=0,
-        value=0
-    )
-
-    material_per_day = st.number_input(
-        "Training Material Cost Per Day",
-        min_value=0,
-        value=0
-    )
-
-    other_per_day = st.number_input(
-        "Other Cost Per Day",
-        min_value=0,
-        value=0
-    )
+    stay_per_day = st.number_input("Stay Cost Per Day", min_value=0, value=0)
+    travel_per_day = st.number_input("Travel Cost Per Day", min_value=0, value=0)
+    food_per_day = st.number_input("Food Cost Per Day", min_value=0, value=0)
+    material_per_day = st.number_input("Training Material Cost Per Day", min_value=0, value=0)
+    other_per_day = st.number_input("Other Cost Per Day", min_value=0, value=0)
 
     stay_total = stay_per_day * training_days
     travel_total = travel_per_day * training_days
@@ -120,7 +107,7 @@ def show_mediator_budget_check():
         + other_total
     )
 
-    st.subheader("Cost Breakdown")
+    st.subheader("Complete Cost Breakdown")
 
     cost_table = pd.DataFrame({
         "Cost Component": [
@@ -132,7 +119,25 @@ def show_mediator_budget_check():
             "Other Cost",
             "Total Estimated Budget"
         ],
-        "Amount": [
+        "Per Day / Rate": [
+            f"₹{rate_per_hour:,.0f} per hour",
+            f"₹{stay_per_day:,.0f}",
+            f"₹{travel_per_day:,.0f}",
+            f"₹{food_per_day:,.0f}",
+            f"₹{material_per_day:,.0f}",
+            f"₹{other_per_day:,.0f}",
+            "-"
+        ],
+        "Days / Hours": [
+            f"{total_hours} hours",
+            f"{training_days} days",
+            f"{training_days} days",
+            f"{training_days} days",
+            f"{training_days} days",
+            f"{training_days} days",
+            "-"
+        ],
+        "Total Amount": [
             f"₹{trainer_cost:,.0f}",
             f"₹{stay_total:,.0f}",
             f"₹{travel_total:,.0f}",
@@ -163,6 +168,9 @@ def show_mediator_budget_check():
             requests_df["request_id"] == request_id
         ].index[0]
 
+        requests_df.loc[index, "training_days"] = training_days
+        requests_df.loc[index, "hours_per_day"] = hours_per_day
+        requests_df.loc[index, "total_hours"] = total_hours
         requests_df.loc[index, "rate_per_hour"] = rate_per_hour
         requests_df.loc[index, "trainer_cost"] = trainer_cost
 
@@ -188,12 +196,9 @@ def show_mediator_budget_check():
 
         if decision == "Approve and Send to Partner":
             requests_df.loc[index, "request_status"] = "Pending Director Approval"
-            st.success("Request estimated and sent to Partner successfully.")
+            st.success("Complete estimation sent to Partner successfully.")
         else:
             requests_df.loc[index, "request_status"] = "Sent Back to Requester"
             st.warning("Request sent back to Requester.")
 
-        requests_df.to_csv(
-            REQUESTS_FILE,
-            index=False
-        )
+        requests_df.to_csv(REQUESTS_FILE, index=False)
