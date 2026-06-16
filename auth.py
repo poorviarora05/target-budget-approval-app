@@ -6,29 +6,25 @@ USERS_FILE = "users_data.csv"
 
 
 def init_session():
-
     if "logged_in" not in st.session_state:
-
         st.session_state.logged_in = False
         st.session_state.username = None
         st.session_state.role = None
 
 
 def load_users():
-
     if os.path.exists(USERS_FILE):
-
         try:
             return pd.read_csv(USERS_FILE)
-
         except:
-
             return pd.DataFrame(
                 columns=[
                     "username",
                     "password",
                     "role",
-                    "email"
+                    "email",
+                    "full_name",
+                    "organization"
                 ]
             )
 
@@ -37,22 +33,18 @@ def load_users():
             "username",
             "password",
             "role",
-            "email"
+            "email",
+            "full_name",
+            "organization"
         ]
     )
 
 
 def save_users(users_df):
-
-    users_df.to_csv(
-        USERS_FILE,
-        index=False
-    )
+    users_df.to_csv(USERS_FILE, index=False)
 
 
 def login_page():
-
-    # ---------------- TITLE ---------------- #
 
     st.title("📊 Trainer Budget Approval System")
 
@@ -62,20 +54,11 @@ def login_page():
 
     st.markdown("---")
 
-    # ---------------- CENTER LOGIN BOX ---------------- #
-
     col1, col2, col3 = st.columns([1, 1.5, 1])
 
     with col2:
 
-        tab1, tab2 = st.tabs(
-            [
-                "Sign In",
-                "Sign Up"
-            ]
-        )
-
-        # ---------------- SIGN IN ---------------- #
+        tab1, tab2 = st.tabs(["Sign In", "Sign Up"])
 
         with tab1:
 
@@ -86,7 +69,7 @@ def login_page():
                 [
                     "Requester",
                     "Approver",
-                    "Director",
+                    "Partner",
                     "Trainer"
                 ],
                 key="signin_role"
@@ -103,10 +86,7 @@ def login_page():
                 key="login_password"
             )
 
-            if st.button(
-                "Login",
-                use_container_width=True
-            ):
+            if st.button("Login", use_container_width=True):
 
                 users_df = load_users()
 
@@ -119,20 +99,13 @@ def login_page():
                 ]
 
                 if not user.empty:
-
                     st.session_state.logged_in = True
                     st.session_state.username = username
                     st.session_state.role = role
-
                     st.rerun()
 
                 else:
-
-                    st.error(
-                        "Invalid credentials or incorrect role."
-                    )
-
-        # ---------------- SIGN UP ---------------- #
+                    st.error("Invalid credentials or incorrect role.")
 
         with tab2:
 
@@ -143,52 +116,46 @@ def login_page():
                 [
                     "Requester",
                     "Approver",
-                    "Director",
+                    "Partner",
                     "Trainer"
                 ],
                 key="signup_role"
             )
 
-            new_username = st.text_input(
-                "Create Username"
+            full_name = st.text_input("Full Name")
+
+            organization = st.text_input(
+                "Organization / College / Company"
             )
 
-            new_email = st.text_input(
-                "Email"
-            )
+            new_email = st.text_input("Email")
+
+            new_username = st.text_input("Create Username")
 
             new_password = st.text_input(
                 "Create Password",
                 type="password"
             )
 
-            if st.button(
-                "Create Account",
-                use_container_width=True
-            ):
+            if st.button("Create Account", use_container_width=True):
 
                 users_df = load_users()
 
                 if new_username in users_df["username"].values:
-
-                    st.error(
-                        "Username already exists"
-                    )
+                    st.error("Username already exists")
 
                 else:
-
                     new_user = {
                         "username": new_username,
                         "password": new_password,
                         "role": role,
-                        "email": new_email
+                        "email": new_email,
+                        "full_name": full_name,
+                        "organization": organization
                     }
 
                     users_df = pd.concat(
-                        [
-                            users_df,
-                            pd.DataFrame([new_user])
-                        ],
+                        [users_df, pd.DataFrame([new_user])],
                         ignore_index=True
                     )
 
@@ -208,9 +175,7 @@ def logout_button():
     )
 
     if st.sidebar.button("Logout"):
-
         st.session_state.logged_in = False
         st.session_state.username = None
         st.session_state.role = None
-
         st.rerun()
