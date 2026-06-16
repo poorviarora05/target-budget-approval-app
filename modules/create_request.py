@@ -22,27 +22,18 @@ def show_create_request(username):
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            start_date = st.date_input(
-                "Training Start Date",
-                key="start_date_input"
-            )
+            start_date = st.date_input("Training Start Date")
 
         with col2:
-            end_date = st.date_input(
-                "Training End Date",
-                key="end_date_input"
-            )
+            end_date = st.date_input("Training End Date")
 
-        training_days = (end_date - start_date).days + 1
+        total_training_days = (end_date - start_date).days + 1
 
-        if training_days < 1:
-            training_days = 1
+        if total_training_days < 1:
+            total_training_days = 1
 
         with col3:
-            st.metric(
-                "Total Training Days",
-                training_days
-            )
+            st.metric("Total Training Days", total_training_days)
 
         college_name = st.text_input("College / University Name")
 
@@ -64,6 +55,20 @@ def show_create_request(username):
 
         trainer_name = st.text_input("Trainer Name")
 
+        st.subheader("Additional Requirements")
+
+        col4, col5 = st.columns(2)
+
+        with col4:
+            stay_required = st.checkbox("Stay Required")
+            travel_required = st.checkbox("Travel Required")
+
+        with col5:
+            food_required = st.checkbox("Food Required")
+            training_material_required = st.checkbox(
+                "Training Material Required"
+            )
+
         purpose = st.text_area("Purpose / Remarks")
 
         submit = st.form_submit_button("Submit Request")
@@ -76,10 +81,14 @@ def show_create_request(username):
                 "request_date": str(current_date),
                 "start_date": str(start_date),
                 "end_date": str(end_date),
+                "training_days": total_training_days,
                 "college_name": college_name,
                 "training_topic": training_topic,
                 "trainer_name": trainer_name,
-                "training_days": training_days,
+                "stay_required": stay_required,
+                "travel_required": travel_required,
+                "food_required": food_required,
+                "training_material_required": training_material_required,
                 "purpose": purpose,
                 "request_status": "Pending Mediator Review",
                 "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -95,4 +104,4 @@ def show_create_request(username):
                 index=False
             )
 
-            st.toast("Request sent successfully!")
+            st.success("Request sent successfully!")
