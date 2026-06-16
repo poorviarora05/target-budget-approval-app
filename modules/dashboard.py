@@ -6,14 +6,67 @@ INVOICES_FILE = "invoices.csv"
 
 
 def status_badge(status):
-    if status in ["Approved", "Director Approved", "Approve Payment"]:
+
+    if status in ["Approved", "Partner Approved"]:
         return "🟢 Approved"
-    elif status in ["Rejected", "Director Rejected", "Reject Invoice"]:
+
+    elif status in ["Rejected", "Partner Rejected"]:
         return "🔴 Rejected"
-    elif status in ["Pending Director Approval", "Pending Mediator Review"]:
-        return "🟡 Pending"
+
+    elif status == "Pending Mediator Review":
+        return "🟡 Pending Approver"
+
+    elif status == "Pending Director Approval":
+        return "🟠 Pending Partner"
+
+    elif status == "Sent Back to Requester":
+        return "🔵 Sent Back"
+
     else:
         return f"⚪ {status}"
+
+
+def show_timeline(status):
+
+    steps = [
+        "Requester",
+        "Approver",
+        "Partner",
+        "Invoice"
+    ]
+
+    if status == "Pending Mediator Review":
+        completed = 1
+
+    elif status == "Pending Director Approval":
+        completed = 2
+
+    elif status in ["Approved", "Partner Approved"]:
+        completed = 3
+
+    elif status in ["Invoice Submitted", "Pending Director Invoice Approval"]:
+        completed = 4
+
+    elif status in ["Rejected", "Partner Rejected"]:
+        completed = 0
+
+    else:
+        completed = 1
+
+    timeline_text = ""
+
+    for i, step in enumerate(steps, start=1):
+
+        if i <= completed:
+            timeline_text += f"✅ {step}"
+
+        else:
+            timeline_text += f"⏳ {step}"
+
+        if i != len(steps):
+            timeline_text += "  →  "
+
+    st.write(timeline_text)
 
 
 def show_dashboard(role, username):
@@ -34,8 +87,6 @@ def show_dashboard(role, username):
         st.info("No requests found yet.")
         return
 
-    # ---------------- REQUESTER DASHBOARD ---------------- #
-
     if role == "Requester":
 
         if "created_by" in requests_df.columns:
@@ -45,30 +96,26 @@ def show_dashboard(role, username):
         else:
             my_requests = requests_df
 
-        approved_requests = my_requests[
-            my_requests["request_status"].isin(
-                ["Approved", "Director Approved"]
-            )
-        ]
-
-        if not approved_requests.empty:
-            st.success(
-                "🔔 Notification: Your request has been approved by the Director."
-            )
-            st.balloons()
-
         total = len(my_requests)
+
         pending = len(
             my_requests[
                 my_requests["request_status"].isin(
-                    ["Pending Mediator Review", "Pending Director Approval"]
+                    [
+                        "Pending Mediator Review",
+                        "Pending Director Approval"
+                    ]
                 )
             ]
         )
+
         approved = len(
             my_requests[
                 my_requests["request_status"].isin(
-                    ["Approved", "Director Approved"]
+                    [
+                        "Approved",
+                        "Partner Approved"
+                    ]
                 )
             ]
         )
@@ -83,18 +130,15 @@ def show_dashboard(role, username):
 
         requester_columns = [
             "request_id",
-            "training_date",
+            "request_date",
+            "start_date",
+            "end_date",
             "college_name",
             "training_topic",
-            "trainer_requirement",
-            "hours",
+            "trainer_name",
+            "total_hours",
             "training_days",
             "estimated_budget",
-            "stay_required",
-            "travel_required",
-            "food_required",
-            "training_material_required",
-            "purpose",
             "request_status",
             "created_at"
         ]
@@ -117,19 +161,23 @@ def show_dashboard(role, username):
             hide_index=True
         )
 
-    # ---------------- OTHER USERS DASHBOARD ---------------- #
+        st.markdown("### Approval Timeline")
+
+        for _, row in my_requests.iterrows():
+            st.write(f"**Request ID:** {row.get('request_id', '')}")
+            show_timeline(row.get("request_status", ""))
 
     else:
 
         total_requests = len(requests_df)
 
-        pending_mediator = len(
+        pending_approver = len(
             requests_df[
                 requests_df["request_status"] == "Pending Mediator Review"
             ]
         )
 
-        pending_director = len(
+        pending_partner = len(
             requests_df[
                 requests_df["request_status"] == "Pending Director Approval"
             ]
@@ -138,7 +186,10 @@ def show_dashboard(role, username):
         approved = len(
             requests_df[
                 requests_df["request_status"].isin(
-                    ["Approved", "Director Approved"]
+                    [
+                        "Approved",
+                        "Partner Approved"
+                    ]
                 )
             ]
         )
@@ -146,7 +197,10 @@ def show_dashboard(role, username):
         rejected = len(
             requests_df[
                 requests_df["request_status"].isin(
-                    ["Rejected", "Director Rejected"]
+                    [
+                        "Rejected",
+                        "Partner Rejected"
+                    ]
                 )
             ]
         )
@@ -154,8 +208,8 @@ def show_dashboard(role, username):
         col1, col2, col3, col4, col5 = st.columns(5)
 
         col1.metric("Total Requests", total_requests)
-        col2.metric("Mediator Pending", pending_mediator)
-        col3.metric("Director Pending", pending_director)
+        col2.metric("Pending Approver", pending_approver)
+        col3.metric("Pending Partner", pending_partner)
         col4.metric("Approved", approved)
         col5.metric("Rejected", rejected)
 
@@ -173,6 +227,12 @@ def show_dashboard(role, username):
             use_container_width=True,
             hide_index=True
         )
+
+        st.markdown("### Approval Timeline")
+
+        for _, row in requests_df.iterrows():
+            st.write(f"**Request ID:** {row.get('request_id', '')}")
+            show_timeline(row.get("request_status", ""))
 
         st.markdown("### Invoices")
 
