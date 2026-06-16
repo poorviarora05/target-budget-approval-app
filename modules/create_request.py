@@ -88,8 +88,8 @@ def show_create_request(username):
     local_travel_total = local_travel_per_day * total_training_days
 
     outstation_travel_mode = st.selectbox(
-        "Aane-Jaane Travel Mode",
-        ["None", "Flight", "Train", "Car", "Bus"]
+        "Outstation Travel Mode",
+        ["Flight", "Train", "Bus", "Car"]
     )
 
     col6, col7 = st.columns(2)
@@ -109,11 +109,14 @@ def show_create_request(username):
         )
 
     outstation_travel_total = going_travel_cost + return_travel_cost
-
     total_travel_cost = local_travel_total + outstation_travel_total
 
     st.info(f"Local Travel Total: ₹{local_travel_total:,.0f}")
-    st.info(f"Aane-Jaane Travel Total: ₹{outstation_travel_total:,.0f}")
+
+    st.info(
+        f"Outstation Travel ({outstation_travel_mode}): ₹{outstation_travel_total:,.0f}"
+    )
+
     st.success(f"Total Travel Cost: ₹{total_travel_cost:,.0f}")
 
     st.subheader("Additional Requirements Cost")
