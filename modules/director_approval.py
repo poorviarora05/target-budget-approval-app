@@ -85,13 +85,8 @@ def show_director_approval():
     suggested_budget_per_program = available_budget / number_of_programs
     suggested_budget_per_trainer = available_budget / number_of_trainers
 
-    st.info(
-        f"Suggested Budget Per Program: ₹{suggested_budget_per_program:,.0f}"
-    )
-
-    st.info(
-        f"Suggested Budget Per Trainer: ₹{suggested_budget_per_trainer:,.0f}"
-    )
+    st.info(f"Suggested Budget Per Program: ₹{suggested_budget_per_program:,.0f}")
+    st.info(f"Suggested Budget Per Trainer: ₹{suggested_budget_per_trainer:,.0f}")
 
     st.subheader("Program-wise Budget Allocation")
 
@@ -210,20 +205,9 @@ def show_director_approval():
 
     col1, col2, col3 = st.columns(3)
 
-    col1.metric(
-        "Available Budget",
-        f"₹{available_budget:,.0f}"
-    )
-
-    col2.metric(
-        "Total Allocated",
-        f"₹{total_allocated_budget:,.0f}"
-    )
-
-    col3.metric(
-        "Remaining / Loss",
-        f"₹{remaining_budget:,.0f}"
-    )
+    col1.metric("Available Budget", f"₹{available_budget:,.0f}")
+    col2.metric("Total Allocated", f"₹{total_allocated_budget:,.0f}")
+    col3.metric("Remaining / Loss", f"₹{remaining_budget:,.0f}")
 
     if remaining_budget >= 0:
         allocation_status = "Within Budget"
@@ -234,6 +218,45 @@ def show_director_approval():
         allocation_status = "Over Budget"
         st.error(
             f"Overall allocation exceeds budget. Loss: ₹{abs(remaining_budget):,.0f}"
+        )
+
+    st.subheader("Smart Budget Insights")
+
+    if available_budget > 0:
+        utilization_percentage = (total_allocated_budget / available_budget) * 100
+    else:
+        utilization_percentage = 0
+
+    budget_health_score = max(
+        0,
+        round(100 - abs(100 - utilization_percentage))
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("Budget Health Score", f"{budget_health_score}/100")
+
+    if utilization_percentage <= 80:
+        risk_level = "Low Risk"
+    elif utilization_percentage <= 100:
+        risk_level = "Medium Risk"
+    else:
+        risk_level = "High Risk"
+
+    col2.metric("Risk Level", risk_level)
+    col3.metric("Budget Utilization", f"{utilization_percentage:.1f}%")
+
+    if risk_level == "Low Risk":
+        st.success(
+            "System Recommendation: Budget allocation is healthy and recommended for approval."
+        )
+    elif risk_level == "Medium Risk":
+        st.warning(
+            "System Recommendation: Allocation is close to budget limit. Review before approval."
+        )
+    else:
+        st.error(
+            "System Recommendation: Budget exceeded. Reallocation recommended."
         )
 
     st.subheader("Partner Decision")
@@ -259,6 +282,9 @@ def show_director_approval():
         requests_df.loc[index, "total_allocated_budget"] = total_allocated_budget
         requests_df.loc[index, "remaining_budget"] = remaining_budget
         requests_df.loc[index, "allocation_status"] = allocation_status
+        requests_df.loc[index, "budget_health_score"] = budget_health_score
+        requests_df.loc[index, "risk_level"] = risk_level
+        requests_df.loc[index, "budget_utilization"] = utilization_percentage
 
         if "partner_remarks" not in requests_df.columns:
             requests_df["partner_remarks"] = ""
