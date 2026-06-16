@@ -123,7 +123,7 @@ elif menu == "✅ Approver Review":
     show_mediator_budget_check()
 
 elif menu == "✅ Partner Approval":
-    st.info("Partner module under development")
+    show_director_approval()
 
 elif menu == "📤 Submit Invoice":
     show_submit_invoice()
