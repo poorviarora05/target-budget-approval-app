@@ -36,14 +36,13 @@ def show_director_approval():
     request_table = pd.DataFrame({
         "Field": [
             "Request Date",
-            "Training Start Date",
-            "Training End Date",
-            "College / University",
+            "Start Date",
+            "End Date",
+            "University",
             "Training Topic",
             "Trainer Name",
             "Total Hours",
             "Training Days",
-            "Rate Per Hour",
             "Estimated Budget",
             "Approver Remarks"
         ],
@@ -56,7 +55,6 @@ def show_director_approval():
             selected_request.get("trainer_name", ""),
             selected_request.get("total_hours", ""),
             selected_request.get("training_days", ""),
-            selected_request.get("rate_per_hour", ""),
             selected_request.get("estimated_budget", 0),
             selected_request.get("approver_remarks", "")
         ]
@@ -78,155 +76,166 @@ def show_director_approval():
         value=1
     )
 
-    number_of_trainers = st.number_input(
-        "Number of Trainers",
-        min_value=1,
-        value=1
+    suggested_budget_per_program = available_budget / number_of_programs
+
+    st.info(
+        f"Suggested Budget Per Program: ₹{suggested_budget_per_program:,.0f}"
     )
 
-    estimated_budget = float(
-        selected_request.get("estimated_budget", 0)
-    )
+    st.subheader("Program-wise Budget Allocation")
 
-    budget_per_program = available_budget / number_of_programs
-    budget_per_trainer = available_budget / number_of_trainers
-
-    st.subheader("Smart Budget Optimizer")
-
-    optimizer_table = pd.DataFrame({
-        "Budget Parameter": [
-            "Available University Budget",
-            "Number of Programs",
-            "Number of Trainers",
-            "Suggested Budget Per Program",
-            "Suggested Budget Per Trainer",
-            "Estimated Request Budget"
-        ],
-        "Value": [
-            f"₹{available_budget:,.0f}",
-            number_of_programs,
-            number_of_trainers,
-            f"₹{budget_per_program:,.0f}",
-            f"₹{budget_per_trainer:,.0f}",
-            f"₹{estimated_budget:,.0f}"
+    program_tabs = st.tabs(
+        [
+            f"Program {i}"
+            for i in range(1, int(number_of_programs) + 1)
         ]
-    })
-
-    st.table(optimizer_table)
-
-    st.subheader("Program-wise Requirement & Budget Allocation")
+    )
 
     allocation_rows = []
 
-    for i in range(1, int(number_of_programs) + 1):
+    for i, tab in enumerate(program_tabs, start=1):
 
-        st.markdown(f"### Program {i}")
+        with tab:
 
-        col1, col2 = st.columns(2)
+            st.markdown(f"### Program {i} Allocation")
 
-        with col1:
-            program_name = st.text_input(
-                f"Program {i} Name",
-                key=f"program_name_{i}"
+            col1, col2 = st.columns(2)
+
+            with col1:
+
+                program_name = st.text_input(
+                    "Program Name",
+                    key=f"program_name_{i}"
+                )
+
+                trainer_name = st.text_input(
+                    "Trainer Name",
+                    key=f"trainer_name_{i}"
+                )
+
+                trainer_fee = st.number_input(
+                    "Trainer Fee",
+                    min_value=0,
+                    value=0,
+                    key=f"trainer_fee_{i}"
+                )
+
+            with col2:
+
+                stay_budget = st.number_input(
+                    "Stay Budget",
+                    min_value=0,
+                    value=0,
+                    key=f"stay_budget_{i}"
+                )
+
+                travel_budget = st.number_input(
+                    "Travel Budget",
+                    min_value=0,
+                    value=0,
+                    key=f"travel_budget_{i}"
+                )
+
+                food_budget = st.number_input(
+                    "Food Budget",
+                    min_value=0,
+                    value=0,
+                    key=f"food_budget_{i}"
+                )
+
+                material_budget = st.number_input(
+                    "Training Material Budget",
+                    min_value=0,
+                    value=0,
+                    key=f"material_budget_{i}"
+                )
+
+                other_budget = st.number_input(
+                    "Other Budget",
+                    min_value=0,
+                    value=0,
+                    key=f"other_budget_{i}"
+                )
+
+            program_total = (
+                trainer_fee
+                + stay_budget
+                + travel_budget
+                + food_budget
+                + material_budget
+                + other_budget
             )
 
-            trainer_name = st.text_input(
-                f"Trainer {i} Name",
-                key=f"trainer_name_{i}"
-            )
+            variance = suggested_budget_per_program - program_total
 
-            trainer_fee = st.number_input(
-                f"Trainer Fee - Program {i}",
-                min_value=0,
-                value=0,
-                key=f"trainer_fee_{i}"
-            )
+            if variance >= 0:
+                program_status = "Within Suggested Budget"
+                st.success(
+                    f"Program {i} is within suggested budget. Remaining: ₹{variance:,.0f}"
+                )
+            else:
+                program_status = "Over Suggested Budget"
+                st.error(
+                    f"Program {i} exceeds suggested budget by ₹{abs(variance):,.0f}"
+                )
 
-        with col2:
-            stay_budget = st.number_input(
-                f"Stay Budget - Program {i}",
-                min_value=0,
-                value=0,
-                key=f"stay_budget_{i}"
-            )
-
-            travel_budget = st.number_input(
-                f"Travel Budget - Program {i}",
-                min_value=0,
-                value=0,
-                key=f"travel_budget_{i}"
-            )
-
-            food_budget = st.number_input(
-                f"Food Budget - Program {i}",
-                min_value=0,
-                value=0,
-                key=f"food_budget_{i}"
-            )
-
-            material_budget = st.number_input(
-                f"Material Budget - Program {i}",
-                min_value=0,
-                value=0,
-                key=f"material_budget_{i}"
-            )
-
-            other_budget = st.number_input(
-                f"Other Budget - Program {i}",
-                min_value=0,
-                value=0,
-                key=f"other_budget_{i}"
-            )
-
-        program_total = (
-            trainer_fee
-            + stay_budget
-            + travel_budget
-            + food_budget
-            + material_budget
-            + other_budget
-        )
-
-        st.info(
-            f"Total Budget for Program {i}: ₹{program_total:,.0f}"
-        )
-
-        allocation_rows.append({
-            "Program": program_name,
-            "Trainer": trainer_name,
-            "Trainer Fee": trainer_fee,
-            "Stay": stay_budget,
-            "Travel": travel_budget,
-            "Food": food_budget,
-            "Material": material_budget,
-            "Other": other_budget,
-            "Program Total": program_total
-        })
+            allocation_rows.append({
+                "Program No.": i,
+                "Program Name": program_name,
+                "Trainer Name": trainer_name,
+                "Trainer Fee": trainer_fee,
+                "Stay": stay_budget,
+                "Travel": travel_budget,
+                "Food": food_budget,
+                "Material": material_budget,
+                "Other": other_budget,
+                "Program Total": program_total,
+                "Suggested Budget": suggested_budget_per_program,
+                "Variance": variance,
+                "Status": program_status
+            })
 
     allocation_df = pd.DataFrame(allocation_rows)
 
     total_allocated_budget = allocation_df["Program Total"].sum()
 
-    st.subheader("Allocation Summary")
+    remaining_budget = available_budget - total_allocated_budget
 
-    st.table(allocation_df)
+    st.subheader("Final Allocation Summary")
 
-    st.write(
-        f"Total Allocated Budget: ₹{total_allocated_budget:,.0f}"
+    st.dataframe(
+        allocation_df,
+        use_container_width=True,
+        hide_index=True
     )
 
-    final_remaining_budget = available_budget - total_allocated_budget
+    col1, col2, col3 = st.columns(3)
 
-    if final_remaining_budget >= 0:
-        st.success(
-            f"Allocation is within budget. Remaining: ₹{final_remaining_budget:,.0f}"
-        )
+    col1.metric(
+        "Available Budget",
+        f"₹{available_budget:,.0f}"
+    )
+
+    col2.metric(
+        "Total Allocated",
+        f"₹{total_allocated_budget:,.0f}"
+    )
+
+    col3.metric(
+        "Remaining / Loss",
+        f"₹{remaining_budget:,.0f}"
+    )
+
+    if remaining_budget >= 0:
         allocation_status = "Profitable / Within Budget"
-    else:
-        st.error(
-            f"Allocation exceeds budget. Loss: ₹{abs(final_remaining_budget):,.0f}"
+        st.success(
+            f"Overall allocation is profitable. Remaining budget: ₹{remaining_budget:,.0f}"
         )
+    else:
         allocation_status = "Loss / Over Budget"
+        st.error(
+            f"Overall allocation exceeds budget. Loss: ₹{abs(remaining_budget):,.0f}"
+        )
 
     st.subheader("Partner Decision")
 
@@ -248,24 +257,16 @@ def show_director_approval():
 
         requests_df.loc[index, "available_budget"] = available_budget
         requests_df.loc[index, "number_of_programs"] = number_of_programs
-        requests_df.loc[index, "number_of_trainers"] = number_of_trainers
-        requests_df.loc[index, "budget_per_program"] = budget_per_program
-        requests_df.loc[index, "budget_per_trainer"] = budget_per_trainer
+        requests_df.loc[index, "suggested_budget_per_program"] = suggested_budget_per_program
         requests_df.loc[index, "total_allocated_budget"] = total_allocated_budget
-        requests_df.loc[index, "final_remaining_budget"] = final_remaining_budget
+        requests_df.loc[index, "remaining_budget"] = remaining_budget
         requests_df.loc[index, "allocation_status"] = allocation_status
 
         if "partner_remarks" not in requests_df.columns:
             requests_df["partner_remarks"] = ""
 
-        requests_df["partner_remarks"] = requests_df[
-            "partner_remarks"
-        ].astype(str)
-
-        requests_df.at[
-            index,
-            "partner_remarks"
-        ] = str(partner_remarks)
+        requests_df["partner_remarks"] = requests_df["partner_remarks"].astype(str)
+        requests_df.at[index, "partner_remarks"] = str(partner_remarks)
 
         if decision == "Approve":
             requests_df.loc[index, "request_status"] = "Approved"
