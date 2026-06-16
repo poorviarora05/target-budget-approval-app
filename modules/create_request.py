@@ -54,7 +54,10 @@ def show_create_request(username):
             st.error("End Date cannot be before Start Date.")
             total_training_days = 1
 
-        st.info(f"Total Training Days: {total_training_days}")
+        st.metric(
+            "Total Training Days",
+            total_training_days
+)
 
         rate_per_hour = st.number_input(
             "Trainer Rate Per Hour",
