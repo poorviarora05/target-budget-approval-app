@@ -218,7 +218,78 @@ def show_director_approval():
         allocation_status = "Loss / Over Budget"
         st.error(f"Overall allocation exceeds budget. Loss: ₹{abs(remaining_budget):,.0f}")
 
-    st.subheader("Partner Decision")
+    # ---------------- SMART BUDGET INSIGHTS ---------------- #
+
+if available_budget > 0:
+
+    utilization_percentage = (
+        total_allocated_budget / available_budget
+    ) * 100
+
+else:
+
+    utilization_percentage = 0
+
+budget_health_score = max(
+    0,
+    round(100 - abs(100 - utilization_percentage))
+)
+
+st.subheader("Smart Budget Insights")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+
+    st.metric(
+        "Budget Health Score",
+        f"{budget_health_score}/100"
+    )
+
+with col2:
+
+    if utilization_percentage <= 80:
+
+        risk_level = "Low Risk"
+
+    elif utilization_percentage <= 100:
+
+        risk_level = "Medium Risk"
+
+    else:
+
+        risk_level = "High Risk"
+
+    st.metric(
+        "Risk Level",
+        risk_level
+    )
+
+with col3:
+
+    st.metric(
+        "Budget Utilization",
+        f"{utilization_percentage:.1f}%"
+    )
+
+if risk_level == "Low Risk":
+
+    st.success(
+        "System Recommendation: Budget allocation is healthy and recommended for approval."
+    )
+
+elif risk_level == "Medium Risk":
+
+    st.warning(
+        "System Recommendation: Allocation is close to the budget limit. Review before approval."
+    )
+
+else:
+
+    st.error(
+        "System Recommendation: Budget exceeded. Reallocation recommended."
+    )
+st.subheader("Partner Decision")
 
     partner_remarks = st.text_area("Partner Remarks")
 
