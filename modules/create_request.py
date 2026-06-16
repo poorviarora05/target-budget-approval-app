@@ -14,28 +14,40 @@ def show_create_request(username):
     except:
         requests_df = pd.DataFrame()
 
+    # DATE SECTION OUTSIDE FORM
+    current_date = datetime.now().date()
+
+    st.write("Request Date:", current_date)
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        start_date = st.date_input(
+            "Training Start Date"
+        )
+
+    with col2:
+        end_date = st.date_input(
+            "Training End Date"
+        )
+
+    total_training_days = max(
+        (end_date - start_date).days + 1,
+        1
+    )
+
+    with col3:
+        st.metric(
+            "Total Training Days",
+            total_training_days
+        )
+
+    # FORM STARTS
     with st.form("create_request_form"):
 
-        current_date = datetime.now().date()
-        st.write("Request Date:", current_date)
-
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            start_date = st.date_input("Training Start Date")
-
-        with col2:
-            end_date = st.date_input("Training End Date")
-
-        total_training_days = (end_date - start_date).days + 1
-
-        if total_training_days < 1:
-            total_training_days = 1
-
-        with col3:
-            st.metric("Total Training Days", total_training_days)
-
-        college_name = st.text_input("College / University Name")
+        college_name = st.text_input(
+            "College / University Name"
+        )
 
         training_topic = st.selectbox(
             "Training Topic",
@@ -53,25 +65,60 @@ def show_create_request(username):
             ]
         )
 
-        trainer_name = st.text_input("Trainer Name")
+        trainer_name = st.text_input(
+            "Trainer Name"
+        )
 
         st.subheader("Additional Requirements")
 
         col4, col5 = st.columns(2)
 
         with col4:
-            stay_required = st.checkbox("Stay Required")
-            travel_required = st.checkbox("Travel Required")
 
-        with col5:
-            food_required = st.checkbox("Food Required")
-            training_material_required = st.checkbox(
-                "Training Material Required"
+            stay_cost = st.number_input(
+                "Stay Cost (₹)",
+                min_value=0,
+                value=0
             )
 
-        purpose = st.text_area("Purpose / Remarks")
+            travel_cost = st.number_input(
+                "Travel Cost (₹)",
+                min_value=0,
+                value=0
+            )
 
-        submit = st.form_submit_button("Submit Request")
+        with col5:
+
+            food_cost = st.number_input(
+                "Food Cost (₹)",
+                min_value=0,
+                value=0
+            )
+
+            material_cost = st.number_input(
+                "Training Material Cost (₹)",
+                min_value=0,
+                value=0
+            )
+
+        additional_cost = (
+            stay_cost +
+            travel_cost +
+            food_cost +
+            material_cost
+        )
+
+        st.info(
+            f"Additional Cost: ₹{additional_cost:,.0f}"
+        )
+
+        purpose = st.text_area(
+            "Purpose / Remarks"
+        )
+
+        submit = st.form_submit_button(
+            "Submit Request"
+        )
 
         if submit:
 
@@ -85,17 +132,23 @@ def show_create_request(username):
                 "college_name": college_name,
                 "training_topic": training_topic,
                 "trainer_name": trainer_name,
-                "stay_required": stay_required,
-                "travel_required": travel_required,
-                "food_required": food_required,
-                "training_material_required": training_material_required,
+                "stay_cost": stay_cost,
+                "travel_cost": travel_cost,
+                "food_cost": food_cost,
+                "material_cost": material_cost,
+                "additional_cost": additional_cost,
                 "purpose": purpose,
                 "request_status": "Pending Mediator Review",
-                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                "created_at": datetime.now().strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
             }
 
             requests_df = pd.concat(
-                [requests_df, pd.DataFrame([new_request])],
+                [
+                    requests_df,
+                    pd.DataFrame([new_request])
+                ],
                 ignore_index=True
             )
 
@@ -104,4 +157,6 @@ def show_create_request(username):
                 index=False
             )
 
-            st.success("Request sent successfully!")
+            st.success(
+                "Request sent successfully!"
+            )
