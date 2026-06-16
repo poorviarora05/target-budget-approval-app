@@ -84,13 +84,13 @@ if role == "Requester":
 
 elif role == "Approver":
     menu_options = [
-        "💰 Budget Allocation",
+        "✅ Approver Review",
         "📊 Dashboard"
     ]
 
-elif role == "Director":
+elif role == "Partner":
     menu_options = [
-        "✅ Director Approval",
+        "✅ Partner Approval",
         "📄 Invoice Approval",
         "📊 Dashboard"
     ]
@@ -119,10 +119,10 @@ elif menu == "📝 Create Request":
         st.session_state.username
     )
 
-elif menu == "💰 Budget Allocation":
+elif menu == "✅ Approver Review":
     show_mediator_budget_check()
 
-elif menu == "✅ Director Approval":
+elif menu == "✅ Partner Approval":
     show_director_approval()
 
 elif menu == "📤 Submit Invoice":
