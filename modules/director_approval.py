@@ -27,6 +27,21 @@ def show_director_approval():
         requests_df["request_status"] == "Pending Director Approval"
     ]
 
+    if not pending_requests.empty:
+
+        @st.dialog("🔔 Partner Approval Notification")
+        def partner_notification():
+            st.write(
+                f"{len(pending_requests)} request(s) pending for Partner approval."
+            )
+
+            if st.button("View Pending Requests"):
+                st.session_state["view_partner_requests"] = True
+                st.rerun()
+
+        if not st.session_state.get("view_partner_requests", False):
+            partner_notification()
+
     if pending_requests.empty:
         st.info("No requests pending for Partner approval.")
         return
@@ -194,4 +209,5 @@ def show_director_approval():
             index=False
         )
 
+        st.session_state["view_partner_requests"] = False
         st.rerun()
