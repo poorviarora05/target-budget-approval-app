@@ -65,97 +65,51 @@ def show_mediator_budget_check():
 
     st.table(request_table)
 
-    # ---------------- REQUESTER BUDGET ----------------
-
-    requester_training_days = safe_int(
-        selected_request.get("training_days", 1),
-        1
-    )
-
-    requester_total_hours = safe_int(
-        selected_request.get("total_hours", 0),
-        0
-    )
-
-    requester_rate_per_hour = safe_int(
-        selected_request.get("rate_per_hour", 0),
-        0
-    )
-
-    requester_training_cost = safe_int(
-        selected_request.get("training_cost", 0),
-        0
-    )
-
-    requester_stay_cost = safe_int(
-        selected_request.get("stay_cost", 0),
-        0
-    )
-
-    requester_travel_cost = safe_int(
-        selected_request.get("travel_cost", 0),
-        0
-    )
-
-    requester_food_cost = safe_int(
-        selected_request.get("food_cost", 0),
-        0
-    )
-
-    requester_material_cost = safe_int(
-        selected_request.get("material_cost", 0),
-        0
-    )
-
-    requester_additional_cost = safe_int(
-        selected_request.get("additional_cost", 0),
-        0
-    )
-
     requester_total_budget = safe_int(
         selected_request.get("total_expected_budget", 0),
         0
     )
 
-    st.subheader("Requester Budget Estimation")
-
-    requester_budget_table = pd.DataFrame({
+    requester_table = pd.DataFrame({
         "Component": [
             "Training Days",
-            "Total Training Hours",
+            "Total Hours",
             "Rate Per Hour",
             "Training Cost",
+            "Travel Mode",
+            "Going Travel Cost",
+            "Return Travel Cost",
+            "Total Travel Cost",
             "Stay Cost",
-            "Travel Cost",
             "Food Cost",
-            "Training Material Cost",
-            "Additional Cost",
+            "Material Cost",
             "Total Requester Budget"
         ],
-        "Amount / Value": [
-            requester_training_days,
-            requester_total_hours,
-            f"₹{requester_rate_per_hour:,.0f}",
-            f"₹{requester_training_cost:,.0f}",
-            f"₹{requester_stay_cost:,.0f}",
-            f"₹{requester_travel_cost:,.0f}",
-            f"₹{requester_food_cost:,.0f}",
-            f"₹{requester_material_cost:,.0f}",
-            f"₹{requester_additional_cost:,.0f}",
+        "Requester Value": [
+            selected_request.get("training_days", 0),
+            selected_request.get("total_hours", 0),
+            f"₹{safe_int(selected_request.get('rate_per_hour', 0)):,.0f}",
+            f"₹{safe_int(selected_request.get('training_cost', 0)):,.0f}",
+            selected_request.get("travel_mode", ""),
+            f"₹{safe_int(selected_request.get('travel_onward_cost', 0)):,.0f}",
+            f"₹{safe_int(selected_request.get('travel_return_cost', 0)):,.0f}",
+            f"₹{safe_int(selected_request.get('travel_cost', 0)):,.0f}",
+            f"₹{safe_int(selected_request.get('stay_cost', 0)):,.0f}",
+            f"₹{safe_int(selected_request.get('food_cost', 0)):,.0f}",
+            f"₹{safe_int(selected_request.get('material_cost', 0)):,.0f}",
             f"₹{requester_total_budget:,.0f}"
         ]
     })
 
-    st.table(requester_budget_table)
-
-    # ---------------- APPROVER BUDGET ----------------
+    st.subheader("Requester Budget Estimation")
+    st.table(requester_table)
 
     st.subheader("Approver Budget Calculation")
 
     training_days = st.number_input(
         "Total Training Days",
         min_value=1,
-        value=requester_training_days
+        value=safe_int(selected_request.get("training_days", 1), 1)
     )
 
     hours_per_day = st.number_input(
@@ -175,17 +129,42 @@ def show_mediator_budget_check():
     trainer_cost = total_hours * rate_per_hour
 
     st.info(f"Total Program Hours: {total_hours}")
+    st.info(f"Trainer Cost: ₹{trainer_cost:,.0f}")
 
-    st.markdown("### Per Day Requirement Cost")
+    st.subheader("Approver Travel Details")
+
+    approver_travel_mode = st.selectbox(
+        "Travel Mode",
+        ["None", "Flight", "Train", "Car", "Bus"]
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        approver_travel_onward_cost = st.number_input(
+            "Going Travel Cost (₹)",
+            min_value=0,
+            value=0
+        )
+
+    with col2:
+        approver_travel_return_cost = st.number_input(
+            "Return Travel Cost (₹)",
+            min_value=0,
+            value=0
+        )
+
+    travel_total = (
+        approver_travel_onward_cost
+        + approver_travel_return_cost
+    )
+
+    st.info(f"Total Travel Cost: ₹{travel_total:,.0f}")
+
+    st.subheader("Per Day Requirement Cost")
 
     stay_per_day = st.number_input(
         "Stay Cost Per Day",
-        min_value=0,
-        value=0
-    )
-
-    travel_per_day = st.number_input(
-        "Travel Cost Per Day",
         min_value=0,
         value=0
     )
@@ -203,40 +182,39 @@ def show_mediator_budget_check():
     )
 
     stay_total = stay_per_day * training_days
-    travel_total = travel_per_day * training_days
     food_total = food_per_day * training_days
     material_total = material_per_day * training_days
 
     approver_estimated_budget = (
         trainer_cost
-        + stay_total
         + travel_total
+        + stay_total
         + food_total
         + material_total
     )
 
     st.subheader("Approver Cost Breakdown")
 
-    approver_cost_table = pd.DataFrame({
+    cost_table = pd.DataFrame({
         "Cost Component": [
             "Trainer Fee",
-            "Stay Cost",
             "Travel Cost",
+            "Stay Cost",
             "Food Cost",
             "Training Material Cost",
             "Total Approver Budget"
         ],
-        "Per Day / Rate": [
+        "Rate / Details": [
             f"₹{rate_per_hour:,.0f} per hour",
-            f"₹{stay_per_day:,.0f}",
-            f"₹{travel_per_day:,.0f}",
-            f"₹{food_per_day:,.0f}",
-            f"₹{material_per_day:,.0f}",
+            approver_travel_mode,
+            f"₹{stay_per_day:,.0f} per day",
+            f"₹{food_per_day:,.0f} per day",
+            f"₹{material_per_day:,.0f} per day",
             "-"
         ],
         "Days / Hours": [
             f"{total_hours} hours",
-            f"{training_days} days",
+            "Going + Return",
             f"{training_days} days",
             f"{training_days} days",
             f"{training_days} days",
@@ -244,37 +222,35 @@ def show_mediator_budget_check():
         ],
         "Total Amount": [
             f"₹{trainer_cost:,.0f}",
-            f"₹{stay_total:,.0f}",
             f"₹{travel_total:,.0f}",
+            f"₹{stay_total:,.0f}",
             f"₹{food_total:,.0f}",
             f"₹{material_total:,.0f}",
             f"₹{approver_estimated_budget:,.0f}"
         ]
     })
 
-    st.table(approver_cost_table)
-
-    # ---------------- COMPARISON ----------------
+    st.table(cost_table)
 
     st.subheader("Requester vs Approver Budget Comparison")
 
     difference = approver_estimated_budget - requester_total_budget
 
-    col1, col2, col3 = st.columns(3)
+    col3, col4, col5 = st.columns(3)
 
-    with col1:
+    with col3:
         st.metric(
             "Requester Budget",
             f"₹{requester_total_budget:,.0f}"
         )
 
-    with col2:
+    with col4:
         st.metric(
             "Approver Budget",
             f"₹{approver_estimated_budget:,.0f}"
         )
 
-    with col3:
+    with col5:
         st.metric(
             "Difference",
             f"₹{difference:,.0f}"
@@ -290,8 +266,6 @@ def show_mediator_budget_check():
         )
     else:
         st.success("Requester and Approver budgets match.")
-
-    # ---------------- DECISION ----------------
 
     st.subheader("Approver Decision")
 
@@ -317,12 +291,14 @@ def show_mediator_budget_check():
             "total_hours",
             "rate_per_hour",
             "trainer_cost",
+            "approver_travel_mode",
+            "approver_travel_onward_cost",
+            "approver_travel_return_cost",
+            "travel_total",
             "stay_per_day",
-            "travel_per_day",
             "food_per_day",
             "material_per_day",
             "stay_total",
-            "travel_total",
             "food_total",
             "material_total",
             "estimated_budget",
@@ -339,13 +315,16 @@ def show_mediator_budget_check():
         requests_df.loc[index, "rate_per_hour"] = rate_per_hour
         requests_df.loc[index, "trainer_cost"] = trainer_cost
 
+        requests_df.loc[index, "approver_travel_mode"] = approver_travel_mode
+        requests_df.loc[index, "approver_travel_onward_cost"] = approver_travel_onward_cost
+        requests_df.loc[index, "approver_travel_return_cost"] = approver_travel_return_cost
+        requests_df.loc[index, "travel_total"] = travel_total
+
         requests_df.loc[index, "stay_per_day"] = stay_per_day
-        requests_df.loc[index, "travel_per_day"] = travel_per_day
         requests_df.loc[index, "food_per_day"] = food_per_day
         requests_df.loc[index, "material_per_day"] = material_per_day
 
         requests_df.loc[index, "stay_total"] = stay_total
-        requests_df.loc[index, "travel_total"] = travel_total
         requests_df.loc[index, "food_total"] = food_total
         requests_df.loc[index, "material_total"] = material_total
 
@@ -368,7 +347,4 @@ def show_mediator_budget_check():
             requests_df.loc[index, "request_status"] = "Sent Back to Requester"
             st.warning("Request sent back to Requester.")
 
-        requests_df.to_csv(
-            REQUESTS_FILE,
-            index=False
-        )
+        requests_df.to_csv(REQUESTS_FILE, index=False)

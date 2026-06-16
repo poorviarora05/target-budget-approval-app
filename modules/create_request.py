@@ -25,10 +25,7 @@ def show_create_request(username):
     with col2:
         end_date = st.date_input("Training End Date")
 
-    total_training_days = max(
-        (end_date - start_date).days + 1,
-        1
-    )
+    total_training_days = max((end_date - start_date).days + 1, 1)
 
     with col3:
         st.metric("Training Days", total_training_days)
@@ -81,30 +78,51 @@ def show_create_request(username):
 
     st.info(f"Training Cost: ₹{training_cost:,.0f}")
 
-    st.subheader("Additional Requirements Cost")
+    st.subheader("Travel Details")
+
+    travel_mode = st.selectbox(
+        "Travel Mode",
+        ["None", "Flight", "Train", "Car", "Bus"]
+    )
 
     col6, col7 = st.columns(2)
 
     with col6:
+        travel_onward_cost = st.number_input(
+            "Going Travel Cost (₹)",
+            min_value=0,
+            value=0
+        )
+
+    with col7:
+        travel_return_cost = st.number_input(
+            "Return Travel Cost (₹)",
+            min_value=0,
+            value=0
+        )
+
+    travel_cost = travel_onward_cost + travel_return_cost
+
+    st.info(f"Total Travel Cost: ₹{travel_cost:,.0f}")
+
+    st.subheader("Additional Requirements Cost")
+
+    col8, col9 = st.columns(2)
+
+    with col8:
         stay_cost = st.number_input(
             "Stay Cost (₹)",
             min_value=0,
             value=0
         )
 
-        travel_cost = st.number_input(
-            "Travel Cost (₹)",
-            min_value=0,
-            value=0
-        )
-
-    with col7:
         food_cost = st.number_input(
             "Food Cost (₹)",
             min_value=0,
             value=0
         )
 
+    with col9:
         material_cost = st.number_input(
             "Training Material Cost (₹)",
             min_value=0,
@@ -143,8 +161,11 @@ def show_create_request(username):
             "total_hours": total_hours,
             "rate_per_hour": rate_per_hour,
             "training_cost": training_cost,
-            "stay_cost": stay_cost,
+            "travel_mode": travel_mode,
+            "travel_onward_cost": travel_onward_cost,
+            "travel_return_cost": travel_return_cost,
             "travel_cost": travel_cost,
+            "stay_cost": stay_cost,
             "food_cost": food_cost,
             "material_cost": material_cost,
             "additional_cost": additional_cost,
@@ -159,9 +180,6 @@ def show_create_request(username):
             ignore_index=True
         )
 
-        requests_df.to_csv(
-            REQUESTS_FILE,
-            index=False
-        )
+        requests_df.to_csv(REQUESTS_FILE, index=False)
 
         st.success("Request sent successfully!")
