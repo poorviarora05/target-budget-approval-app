@@ -7,7 +7,75 @@ REQUESTS_FILE = "requests.csv"
 
 def show_create_request(username):
 
-    st.header("Create Training Request")
+    st.markdown("""
+        <style>
+        .main-title {
+            font-size: 30px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 5px;
+        }
+
+        .sub-title {
+            font-size: 15px;
+            color: #6b7280;
+            margin-bottom: 25px;
+        }
+
+        .section-card {
+            background-color: #ffffff;
+            padding: 24px;
+            border-radius: 14px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0px 4px 14px rgba(0,0,0,0.04);
+            margin-bottom: 22px;
+        }
+
+        .section-heading {
+            font-size: 19px;
+            font-weight: 650;
+            color: #111827;
+            margin-bottom: 18px;
+        }
+
+        .summary-box {
+            background-color: #f9fafb;
+            padding: 18px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .summary-label {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .summary-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        div.stButton > button {
+            background-color: #111827;
+            color: white;
+            border-radius: 10px;
+            padding: 0.65rem 1.4rem;
+            font-weight: 600;
+            border: none;
+            width: 100%;
+        }
+
+        div.stButton > button:hover {
+            background-color: #374151;
+            color: white;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="main-title">Create Training Request</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Submit training requirement with budget estimation for approval review.</div>', unsafe_allow_html=True)
 
     try:
         requests_df = pd.read_csv(REQUESTS_FILE)
@@ -15,6 +83,10 @@ def show_create_request(username):
         requests_df = pd.DataFrame()
 
     current_date = datetime.now().date()
+
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-heading">Request Timeline</div>', unsafe_allow_html=True)
+
     st.write("Request Date:", current_date)
 
     col1, col2, col3 = st.columns(3)
@@ -30,7 +102,10 @@ def show_create_request(username):
     with col3:
         st.metric("Training Days", total_training_days)
 
-    st.markdown("---")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-heading">College & Training Details</div>', unsafe_allow_html=True)
 
     college_name = st.text_input("College / University Name")
 
@@ -51,12 +126,12 @@ def show_create_request(username):
     )
 
     trainer_name = st.text_input("Trainer Name")
-
     purpose = st.text_area("Purpose / Remarks")
 
-    st.markdown("---")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.subheader("Training Budget Details")
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-heading">Training Budget Details</div>', unsafe_allow_html=True)
 
     col4, col5 = st.columns(2)
 
@@ -75,9 +150,13 @@ def show_create_request(username):
         )
 
     training_cost = total_hours * rate_per_hour
-    st.info(f"Training Cost: ₹{training_cost:,.0f}")
 
-    st.subheader("Travel Cost Details")
+    st.metric("Training Cost", f"₹{training_cost:,.0f}")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-heading">Travel Cost Details</div>', unsafe_allow_html=True)
 
     local_travel_per_day = st.number_input(
         "Local Taxi / Daily Travel Cost Per Day (₹)",
@@ -111,15 +190,24 @@ def show_create_request(username):
     outstation_travel_total = going_travel_cost + return_travel_cost
     total_travel_cost = local_travel_total + outstation_travel_total
 
-    st.info(f"Local Travel Total: ₹{local_travel_total:,.0f}")
+    col_a, col_b, col_c = st.columns(3)
 
-    st.info(
-        f"Outstation Travel ({outstation_travel_mode}): ₹{outstation_travel_total:,.0f}"
-    )
+    with col_a:
+        st.metric("Local Travel", f"₹{local_travel_total:,.0f}")
 
-    st.success(f"Total Travel Cost: ₹{total_travel_cost:,.0f}")
+    with col_b:
+        st.metric(
+            f"Outstation Travel ({outstation_travel_mode})",
+            f"₹{outstation_travel_total:,.0f}"
+        )
 
-    st.subheader("Additional Requirements Cost")
+    with col_c:
+        st.metric("Total Travel Cost", f"₹{total_travel_cost:,.0f}")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="section-heading">Additional Requirements Cost</div>', unsafe_allow_html=True)
 
     col8, col9 = st.columns(2)
 
@@ -130,18 +218,14 @@ def show_create_request(username):
             value=0
         )
 
+    with col9:
         food_cost = st.number_input(
             "Food Cost (₹)",
             min_value=0,
             value=0
         )
 
-    with col9:
-        material_cost = st.number_input(
-            "Training Material Cost (₹)",
-            min_value=0,
-            value=0
-        )
+    material_cost = 0
 
     additional_cost = (
         stay_cost
@@ -152,10 +236,18 @@ def show_create_request(username):
 
     total_expected_budget = training_cost + additional_cost
 
-    st.info(f"Additional Cost: ₹{additional_cost:,.0f}")
-    st.success(f"Total Expected Budget: ₹{total_expected_budget:,.0f}")
+    col10, col11, col12 = st.columns(3)
 
-    st.markdown("---")
+    with col10:
+        st.metric("Additional Cost", f"₹{additional_cost:,.0f}")
+
+    with col11:
+        st.metric("Training Cost", f"₹{training_cost:,.0f}")
+
+    with col12:
+        st.metric("Total Expected Budget", f"₹{total_expected_budget:,.0f}")
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
     if st.button("Submit Request"):
 
