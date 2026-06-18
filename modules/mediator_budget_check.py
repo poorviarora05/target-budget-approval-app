@@ -78,6 +78,8 @@ def show_mediator_budget_check():
             "Total Hours",
             "Rate Per Hour",
             "Training Cost",
+            "Local Travel",
+            "Outstation Travel",
             "Total Travel Cost",
             "Stay Cost",
             "Food Cost",
@@ -88,6 +90,8 @@ def show_mediator_budget_check():
             selected_request.get("total_hours", 0),
             f"₹{safe_int(selected_request.get('rate_per_hour', 0)):,.0f}",
             f"₹{safe_int(selected_request.get('training_cost', 0)):,.0f}",
+            f"₹{safe_int(selected_request.get('local_travel_total', 0)):,.0f}",
+            f"₹{safe_int(selected_request.get('outstation_travel_total', 0)):,.0f}",
             f"₹{safe_int(selected_request.get('total_travel_cost', 0)):,.0f}",
             f"₹{safe_int(selected_request.get('stay_cost', 0)):,.0f}",
             f"₹{safe_int(selected_request.get('food_cost', 0)):,.0f}",
@@ -274,7 +278,7 @@ def show_mediator_budget_check():
             requests_df["request_id"] == request_id
         ].index[0]
 
-        cost_columns = [
+        numeric_columns = [
             "training_days",
             "hours_per_day",
             "total_hours",
@@ -284,7 +288,6 @@ def show_mediator_budget_check():
             "food_per_day",
             "approver_local_travel_per_day",
             "approver_local_travel_total",
-            "approver_outstation_travel_mode",
             "approver_going_travel_cost",
             "approver_return_travel_cost",
             "approver_outstation_travel_total",
@@ -295,9 +298,19 @@ def show_mediator_budget_check():
             "budget_difference"
         ]
 
-        for col in cost_columns:
+        text_columns = [
+            "approver_outstation_travel_mode",
+            "approver_remarks"
+        ]
+
+        for col in numeric_columns:
             if col not in requests_df.columns:
                 requests_df[col] = 0
+
+        for col in text_columns:
+            if col not in requests_df.columns:
+                requests_df[col] = ""
+            requests_df[col] = requests_df[col].astype(str)
 
         requests_df.loc[index, "training_days"] = training_days
         requests_df.loc[index, "hours_per_day"] = hours_per_day
@@ -310,7 +323,11 @@ def show_mediator_budget_check():
 
         requests_df.loc[index, "approver_local_travel_per_day"] = approver_local_travel_per_day
         requests_df.loc[index, "approver_local_travel_total"] = approver_local_travel_total
-        requests_df.loc[index, "approver_outstation_travel_mode"] = approver_outstation_travel_mode
+
+        requests_df.loc[index, "approver_outstation_travel_mode"] = str(
+            approver_outstation_travel_mode
+        )
+
         requests_df.loc[index, "approver_going_travel_cost"] = approver_going_travel_cost
         requests_df.loc[index, "approver_return_travel_cost"] = approver_return_travel_cost
         requests_df.loc[index, "approver_outstation_travel_total"] = approver_outstation_travel_total
@@ -321,13 +338,6 @@ def show_mediator_budget_check():
         requests_df.loc[index, "estimated_budget"] = approver_estimated_budget
         requests_df.loc[index, "budget_difference"] = difference
 
-        if "approver_remarks" not in requests_df.columns:
-            requests_df["approver_remarks"] = ""
-
-        requests_df["approver_remarks"] = requests_df[
-            "approver_remarks"
-        ].astype(str)
-
         requests_df.at[index, "approver_remarks"] = str(approver_remarks)
 
         if decision == "Approve and Send to Partner":
@@ -337,4 +347,7 @@ def show_mediator_budget_check():
             requests_df.loc[index, "request_status"] = "Sent Back to Requester"
             st.warning("Request sent back to Requester.")
 
-        requests_df.to_csv(REQUESTS_FILE, index=False)
+        requests_df.to_csv(
+            REQUESTS_FILE,
+            index=False
+        )
