@@ -6,10 +6,11 @@ from modules.mediator_budget_check import show_mediator_budget_check
 from modules.director_approval import show_director_approval
 from modules.submit_invoice import show_submit_invoice
 from modules.invoice_approval import show_invoice_approval
+from modules.budget_calendar import show_budget_calendar
 
 st.set_page_config(
     page_title="TBAS Portal",
-    page_icon="",
+    page_icon="📊",
     layout="wide"
 )
 
@@ -17,7 +18,6 @@ st.markdown("""
 <style>
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
-header {visibility: hidden;}
 
 .stApp {
     background: #F5F7FB;
@@ -119,13 +119,11 @@ div[role="radiogroup"] label:hover {
 </style>
 """, unsafe_allow_html=True)
 
-
 init_session()
 
 if not st.session_state.logged_in:
     login_page()
     st.stop()
-
 
 role = st.session_state.role
 username = st.session_state.username
@@ -152,18 +150,21 @@ st.sidebar.markdown("---")
 if role == "Requester":
     menu_options = [
         "Create Request",
+        "Budget Calendar",
         "Dashboard"
     ]
 
 elif role == "Approver":
     menu_options = [
         "Approver Review",
+        "Budget Calendar",
         "Dashboard"
     ]
 
 elif role == "Partner":
     menu_options = [
         "Partner Approval",
+        "Budget Calendar",
         "Invoice Approval",
         "Dashboard"
     ]
@@ -171,16 +172,17 @@ elif role == "Partner":
 elif role == "Trainer":
     menu_options = [
         "Submit Invoice",
+        "Budget Calendar",
         "Dashboard"
     ]
 
 else:
     menu_options = [
+        "Budget Calendar",
         "Dashboard"
     ]
 
 menu = st.sidebar.radio("Navigation", menu_options)
-
 
 st.markdown("""
 <div class="hero-card">
@@ -190,7 +192,6 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
-
 
 if menu == "Dashboard":
     show_dashboard(
@@ -214,3 +215,6 @@ elif menu == "Submit Invoice":
 
 elif menu == "Invoice Approval":
     show_invoice_approval()
+
+elif menu == "Budget Calendar":
+    show_budget_calendar()
