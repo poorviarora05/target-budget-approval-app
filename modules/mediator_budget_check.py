@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
 
 REQUESTS_FILE = "requests.csv"
 
 
-AVAILABLE_BUDGET_MASTER = {
+DEFAULT_AVAILABLE_BUDGET_MASTER = {
     "Chandigarh University": {
         "Apr-26": 0,
         "May-26": 388009,
@@ -19,7 +18,9 @@ AVAILABLE_BUDGET_MASTER = {
         "Jan-27": 75000,
         "Feb-27": 75000,
         "Mar-27": 75000,
-    }
+    },
+    "Sharda University": {},
+    "Galgotias University": {},
 }
 
 
@@ -40,20 +41,106 @@ def get_month_key_from_date(date_value):
         return ""
 
 
-def get_available_budget(college_name, month_key):
+def normalize_university_name(college_name):
     college_name = str(college_name).lower()
 
     if "chandigarh" in college_name:
-        return AVAILABLE_BUDGET_MASTER.get(
-            "Chandigarh University", {}
-        ).get(month_key, 0)
+        return "Chandigarh University"
+    if "sharda" in college_name:
+        return "Sharda University"
+    if "galgotias" in college_name:
+        return "Galgotias University"
 
-    return 0
+    return str(college_name).strip()
+
+
+def get_available_budget(university, month_key):
+    return st.session_state.available_budget_master.get(
+        university, {}
+    ).get(month_key, 0)
 
 
 def show_mediator_budget_check():
 
+    st.markdown("""
+    <style>
+    h1, h2, h3 {
+        font-size: 22px !important;
+    }
+
+    .stMetric label {
+        font-size: 13px !important;
+    }
+
+    .stMetric div {
+        font-size: 18px !important;
+    }
+
+    div[data-testid="stDataFrame"] {
+        font-size: 13px !important;
+    }
+
+    .stTable {
+        font-size: 13px !important;
+    }
+
+    label, p, div {
+        font-size: 14px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    if "available_budget_master" not in st.session_state:
+        st.session_state.available_budget_master = DEFAULT_AVAILABLE_BUDGET_MASTER.copy()
+
     st.header("Approver Cost Estimation")
+
+    st.subheader("Budget Management")
+
+    months = [
+        "Apr-26", "May-26", "Jun-26", "Jul-26",
+        "Aug-26", "Sep-26", "Oct-26", "Nov-26",
+        "Dec-26", "Jan-27", "Feb-27", "Mar-27"
+    ]
+
+    bm_col1, bm_col2, bm_col3 = st.columns(3)
+
+    with bm_col1:
+        budget_university = st.selectbox(
+            "Select University for Budget",
+            list(DEFAULT_AVAILABLE_BUDGET_MASTER.keys()),
+            key="budget_university"
+        )
+
+    with bm_col2:
+        budget_month = st.selectbox(
+            "Select Budget Month",
+            months,
+            key="budget_month"
+        )
+
+    current_budget = get_available_budget(budget_university, budget_month)
+
+    with bm_col3:
+        new_budget = st.number_input(
+            "Total Available Budget",
+            min_value=0,
+            value=safe_int(current_budget),
+            step=1000,
+            key="new_available_budget"
+        )
+
+    if st.button("Save / Update Available Budget"):
+        if budget_university not in st.session_state.available_budget_master:
+            st.session_state.available_budget_master[budget_university] = {}
+
+        st.session_state.available_budget_master[budget_university][budget_month] = new_budget
+
+        st.success(
+            f"Available budget for {budget_university} - {budget_month} updated to ₹{new_budget:,.0f}"
+        )
+
+    st.markdown("---")
 
     try:
         requests_df = pd.read_csv(REQUESTS_FILE)
@@ -144,16 +231,17 @@ def show_mediator_budget_check():
     college_name = selected_request.get("college_name", "")
     training_start_date = selected_request.get("start_date", "")
     month_key = get_month_key_from_date(training_start_date)
+    normalized_university = normalize_university_name(college_name)
 
     total_available_budget = get_available_budget(
-        college_name,
+        normalized_university,
         month_key
     )
 
     b1, b2, b3 = st.columns(3)
 
     with b1:
-        st.metric("College / University", college_name)
+        st.metric("University", normalized_university)
 
     with b2:
         st.metric("Budget Month", month_key if month_key else "Not Found")
@@ -162,9 +250,7 @@ def show_mediator_budget_check():
         st.metric("Total Available Budget", f"₹{total_available_budget:,.0f}")
 
     if total_available_budget == 0:
-        st.warning(
-            "No available budget found for this university/month in the sample budget master."
-        )
+        st.warning("No available budget found. Add/update budget from Budget Management above.")
 
     st.subheader("Approver Budget Calculation")
 
@@ -215,9 +301,7 @@ def show_mediator_budget_check():
         value=0
     )
 
-    approver_local_travel_total = (
-        approver_local_travel_per_day * training_days
-    )
+    approver_local_travel_total = approver_local_travel_per_day * training_days
 
     approver_outstation_travel_mode = st.selectbox(
         "Outstation Travel Mode",
