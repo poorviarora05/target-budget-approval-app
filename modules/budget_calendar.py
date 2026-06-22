@@ -30,7 +30,6 @@ TRAININGS = {
     "Chandigarh University": [
         {
             "title": "AI/ML Training",
-            "short_title": "AI/ML",
             "start": date(2026, 7, 3),
             "end": date(2026, 7, 7),
             "status": "scheduled",
@@ -38,7 +37,6 @@ TRAININGS = {
         },
         {
             "title": "University Event",
-            "short_title": "Event",
             "start": date(2026, 7, 10),
             "end": date(2026, 7, 11),
             "status": "blocked",
@@ -46,7 +44,6 @@ TRAININGS = {
         },
         {
             "title": "Data Science Bootcamp",
-            "short_title": "DS Bootcamp",
             "start": date(2026, 7, 18),
             "end": date(2026, 7, 20),
             "status": "upcoming",
@@ -56,7 +53,6 @@ TRAININGS = {
     "Sharda University": [
         {
             "title": "Generative AI Workshop",
-            "short_title": "GenAI",
             "start": date(2026, 7, 3),
             "end": date(2026, 7, 6),
             "status": "scheduled",
@@ -64,7 +60,6 @@ TRAININGS = {
         },
         {
             "title": "Cloud Computing Session",
-            "short_title": "Cloud",
             "start": date(2026, 7, 15),
             "end": date(2026, 7, 17),
             "status": "upcoming",
@@ -74,7 +69,6 @@ TRAININGS = {
     "Galgotias University": [
         {
             "title": "Cyber Security Program",
-            "short_title": "Cyber",
             "start": date(2026, 7, 11),
             "end": date(2026, 7, 13),
             "status": "blocked",
@@ -82,7 +76,6 @@ TRAININGS = {
         },
         {
             "title": "Python Training",
-            "short_title": "Python",
             "start": date(2026, 7, 22),
             "end": date(2026, 7, 24),
             "status": "upcoming",
@@ -102,14 +95,13 @@ def get_status_for_day(day_date, university):
             return (
                 training["status"],
                 training["title"],
-                training.get("short_title", training["title"]),
                 training.get("cost", 0),
             )
 
-    return "available", "", "", 0
+    return "available", "", 0
 
 
-def get_budget_usage(university, month_number, year, selected_date=None):
+def get_budget_usage(university, month_number, year, selected_date):
     exhausted = 0
 
     for training in TRAININGS.get(university, []):
@@ -118,14 +110,8 @@ def get_budget_usage(university, month_number, year, selected_date=None):
             and training["start"].year == year
         )
 
-        if not same_month:
-            continue
-
-        if selected_date is None:
+        if same_month and training["end"] <= selected_date:
             exhausted += training.get("cost", 0)
-        else:
-            if training["end"] <= selected_date:
-                exhausted += training.get("cost", 0)
 
     return exhausted
 
@@ -183,7 +169,7 @@ def show_budget_calendar():
 
     left_amount = month_budget - exhausted_amount
 
-    selected_status, selected_title, selected_short_title, selected_cost = get_status_for_day(
+    selected_status, selected_title, selected_cost = get_status_for_day(
         selected_date,
         selected_university,
     )
@@ -214,21 +200,23 @@ def show_budget_calendar():
             else:
                 current_date = date(selected_year, month_number, day)
 
-                status, title, short_title, cost = get_status_for_day(
+                status, title, cost = get_status_for_day(
                     current_date,
                     selected_university,
                 )
 
                 selected_class = "selected-day" if current_date == selected_date else ""
 
-                chip = ""
+                event_html = ""
                 if status != "available":
-                    chip = f'<div class="chip chip-{status}">{short_title}</div>'
+                    event_html = f'''
+                    <div class="event-name">{title}</div>
+                    '''
 
                 days_html += f'''
                 <div class="day-box {status} {selected_class}">
                     <div class="day-number">{day}</div>
-                    {chip}
+                    {event_html}
                 </div>
                 '''
 
@@ -323,7 +311,7 @@ def show_budget_calendar():
 
         .day-box,
         .empty-box {{
-            height: 78px;
+            min-height: 118px;
             border-radius: 15px;
             box-sizing: border-box;
         }}
@@ -331,8 +319,8 @@ def show_budget_calendar():
         .day-box {{
             border: 1px solid #E5E7EB;
             background: #ffffff;
-            padding: 8px;
-            overflow: hidden;
+            padding: 10px;
+            overflow: visible;
         }}
 
         .empty-box {{
@@ -344,18 +332,21 @@ def show_budget_calendar():
             font-size: 22px;
             font-weight: 900;
             line-height: 1;
+            margin-bottom: 12px;
         }}
 
-        .chip {{
-            margin-top: 13px;
-            padding: 5px 8px;
-            border-radius: 999px;
-            font-size: 11px;
+        .event-name {{
+            font-size: 12px;
             font-weight: 900;
-            white-space: normal;
-            overflow: visible;
-            line-height: 1.1;
+            color: #0F172A;
+            line-height: 1.25;
             text-align: center;
+            word-break: normal;
+            overflow-wrap: break-word;
+            white-space: normal;
+            padding: 6px 7px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.55);
         }}
 
         .scheduled {{
@@ -376,21 +367,6 @@ def show_budget_calendar():
         .selected-day {{
             border: 3px solid #2563EB !important;
             box-shadow: 0 0 0 4px rgba(37,99,235,0.15);
-        }}
-
-        .chip-scheduled {{
-            background: #F9A8D4;
-            color: #831843;
-        }}
-
-        .chip-blocked {{
-            background: #FDE68A;
-            color: #92400E;
-        }}
-
-        .chip-upcoming {{
-            background: #86EFAC;
-            color: #166534;
         }}
 
         .side-card {{
@@ -561,4 +537,4 @@ def show_budget_calendar():
     </html>
     '''
 
-    components.html(html, height=850, scrolling=False)
+    components.html(html, height=1050, scrolling=False)
