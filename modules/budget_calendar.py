@@ -168,7 +168,7 @@ def get_yearly_budget_summary(university, fy_start_year):
 
 
 def show_budget_calendar():
-    st.markdown("## 📅 Budget & Training Calendar")
+    st.markdown("## Budget & Training Calendar")
     st.caption("View training schedules, blocked dates, monthly budgets and yearly utilization")
 
     month_names = [
@@ -596,7 +596,7 @@ def show_budget_calendar():
     components.html(html, height=1250, scrolling=True)
 
     st.markdown("---")
-    st.subheader("📊 Yearly Budget Checker")
+    st.subheader("Yearly Budget Checker")
 
     fy_col1, fy_col2 = st.columns(2)
 
