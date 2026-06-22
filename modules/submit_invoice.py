@@ -1,15 +1,54 @@
-import streamlit.components.v1 as components
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import os
 
 REQUESTS_FILE = "requests.csv"
 INVOICES_FILE = "invoices.csv"
+UPLOAD_FOLDER = "onedrive_invoices"
+
+
+def safe_number(value):
+    try:
+        if pd.isna(value):
+            return 0
+        return float(value)
+    except:
+        return 0
+
+
+def save_uploaded_file(uploaded_file, request_id, invoice_type):
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_name = uploaded_file.name.replace(" ", "_")
+    file_name = f"{request_id}_{invoice_type}_{timestamp}_{safe_name}"
+    file_path = os.path.join(UPLOAD_FOLDER, file_name)
+
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+
+    return file_name, file_path
+
+
+def get_approved_budget(selected_request):
+    budget = safe_number(selected_request.get("partner_final_available_budget", 0))
+
+    if budget == 0:
+        budget = safe_number(selected_request.get("available_budget", 0))
+
+    if budget == 0:
+        budget = safe_number(selected_request.get("total_available_budget", 0))
+
+    if budget == 0:
+        budget = safe_number(selected_request.get("estimated_budget", 0))
+
+    return budget
 
 
 def show_submit_invoice():
 
-    st.header("Generate Invoice")
+    st.header("Trainer Invoice Submission")
 
     try:
         requests_df = pd.read_csv(REQUESTS_FILE)
@@ -27,7 +66,7 @@ def show_submit_invoice():
     ]
 
     if approved_requests.empty:
-        st.info("No approved requests available for invoice generation.")
+        st.info("No approved requests available for invoice submission.")
         return
 
     request_id = st.selectbox(
@@ -39,178 +78,157 @@ def show_submit_invoice():
         approved_requests["request_id"] == request_id
     ].iloc[0]
 
-    st.subheader("Invoice Details")
+    approved_budget = get_approved_budget(selected_request)
 
-    col1, col2 = st.columns(2)
+    st.subheader("Approved Request Summary")
 
-    with col1:
-        company_name = st.text_input("Company Name", "Trainer Services Pvt. Ltd.")
-        company_address = st.text_area("Company Address", "New Delhi, India")
-        bill_to = st.text_input(
-            "Bill To",
-            selected_request.get("college_name", "")
-        )
+    summary_df = pd.DataFrame({
+        "Field": [
+            "College / University",
+            "Training Topic",
+            "Trainer Name",
+            "Training Start Date",
+            "Training End Date",
+            "Approved Budget"
+        ],
+        "Details": [
+            selected_request.get("college_name", ""),
+            selected_request.get("training_topic", ""),
+            selected_request.get("trainer_name", ""),
+            selected_request.get("start_date", ""),
+            selected_request.get("end_date", ""),
+            f"₹{approved_budget:,.0f}"
+        ]
+    })
 
-    with col2:
-        invoice_number = st.text_input(
-            "Invoice Number",
-            f"INV{len(invoices_df) + 1:03d}"
-        )
-        invoice_date = st.date_input("Invoice Date")
-        due_date = st.date_input("Due Date")
+    st.table(summary_df)
 
-    st.subheader("Expense Details")
+    st.subheader("Section 1: Training Invoice")
 
-    service_fee = st.number_input("Service / Trainer Fee", min_value=0, value=0)
-    stay_expense = st.number_input("Stay Expense", min_value=0, value=0)
-    travel_expense = st.number_input("Travel Expense", min_value=0, value=0)
-    food_expense = st.number_input("Food Expense", min_value=0, value=0)
-    material_expense = st.number_input("Training Material Expense", min_value=0, value=0)
-    other_expense = st.number_input("Other Expense", min_value=0, value=0)
-
-    tax_rate = st.number_input(
-        "Tax Rate (%)",
-        min_value=0.0,
-        value=18.0
+    training_invoice_file = st.file_uploader(
+        "Upload Training Invoice",
+        type=["pdf", "png", "jpg", "jpeg", "xlsx", "xls"],
+        key="training_invoice_file"
     )
 
-    subtotal = (
-        service_fee
-        + stay_expense
-        + travel_expense
-        + food_expense
-        + material_expense
-        + other_expense
+    training_invoice_amount = st.number_input(
+        "Training Invoice Amount",
+        min_value=0,
+        value=0,
+        step=500
     )
 
-    tax_amount = subtotal * tax_rate / 100
-    total_amount = subtotal + tax_amount
-
-    comments = st.text_area(
-        "Other Comments",
-        "Payment due within 30 days."
+    training_invoice_remarks = st.text_area(
+        "Training Invoice Remarks",
+        key="training_invoice_remarks"
     )
 
-    invoice_html = f"""
-    <div style="background:white; padding:35px; border-radius:14px; border:1px solid #d1d5db; font-family:Arial; color:#111827;">
+    st.subheader("Section 2: Stay / Travel / Food / Other Bills")
 
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div>
-                <h2 style="color:#1e3a8a; margin-bottom:4px;">{company_name}</h2>
-                <p style="white-space:pre-line;">{company_address}</p>
-            </div>
+    expense_files = st.file_uploader(
+        "Upload Stay, Travel, Food, Swiggy, Restaurant, Taxi or Other Bills",
+        type=["pdf", "png", "jpg", "jpeg", "xlsx", "xls"],
+        accept_multiple_files=True,
+        key="expense_bill_files"
+    )
 
-            <div style="text-align:right;">
-                <h1 style="color:#64748b; letter-spacing:2px;">INVOICE</h1>
-                <p><b>Date:</b> {invoice_date}</p>
-                <p><b>Invoice #:</b> {invoice_number}</p>
-                <p><b>Due Date:</b> {due_date}</p>
-            </div>
-        </div>
+    stay_amount = st.number_input("Stay Bills Amount", min_value=0, value=0, step=500)
+    travel_amount = st.number_input("Travel Bills Amount", min_value=0, value=0, step=500)
+    food_amount = st.number_input("Food / Restaurant / Swiggy Bills Amount", min_value=0, value=0, step=500)
+    other_amount = st.number_input("Other Bills Amount", min_value=0, value=0, step=500)
 
-        <hr style="margin:25px 0;">
+    expense_remarks = st.text_area(
+        "Expense Bills Remarks",
+        key="expense_remarks"
+    )
 
-        <h3 style="background:#1e3a8a; color:white; padding:10px; border-radius:6px;">
-            BILL TO
-        </h3>
+    total_expense_amount = (
+        training_invoice_amount
+        + stay_amount
+        + travel_amount
+        + food_amount
+        + other_amount
+    )
 
-        <p>{bill_to}</p>
+    remaining_budget = approved_budget - total_expense_amount
 
-        <table style="width:100%; border-collapse:collapse; margin-top:22px;">
-            <tr style="background:#1e3a8a; color:white;">
-                <th style="padding:12px; text-align:left;">Description</th>
-                <th style="padding:12px; text-align:right;">Amount</th>
-            </tr>
+    st.subheader("Budget Validation")
 
-            <tr>
-                <td style="padding:10px; border-bottom:1px solid #e5e7eb;">Service / Trainer Fee</td>
-                <td style="padding:10px; border-bottom:1px solid #e5e7eb; text-align:right;">₹{service_fee}</td>
-            </tr>
+    c1, c2, c3 = st.columns(3)
 
-            <tr>
-                <td style="padding:10px; border-bottom:1px solid #e5e7eb;">Stay Expense</td>
-                <td style="padding:10px; border-bottom:1px solid #e5e7eb; text-align:right;">₹{stay_expense}</td>
-            </tr>
+    c1.metric("Approved Budget", f"₹{approved_budget:,.0f}")
+    c2.metric("Total Invoice Amount", f"₹{total_expense_amount:,.0f}")
+    c3.metric("Balance / Excess", f"₹{remaining_budget:,.0f}")
 
-            <tr>
-                <td style="padding:10px; border-bottom:1px solid #e5e7eb;">Travel Expense</td>
-                <td style="padding:10px; border-bottom:1px solid #e5e7eb; text-align:right;">₹{travel_expense}</td>
-            </tr>
+    if approved_budget == 0:
+        invoice_status = "Under Consideration"
+        st.warning("Approved budget not found. Invoice will be marked under consideration.")
+    elif total_expense_amount <= approved_budget:
+        invoice_status = "Approved for Payment"
+        st.success("Invoice amount is within the approved budget. It can be approved for payment.")
+    else:
+        invoice_status = "Under Consideration"
+        st.warning("Invoice amount exceeds the approved budget. It will be taken under consideration.")
 
-            <tr>
-                <td style="padding:10px; border-bottom:1px solid #e5e7eb;">Food Expense</td>
-                <td style="padding:10px; border-bottom:1px solid #e5e7eb; text-align:right;">₹{food_expense}</td>
-            </tr>
+    if st.button("Submit Invoices"):
 
-            <tr>
-                <td style="padding:10px; border-bottom:1px solid #e5e7eb;">Training Material</td>
-                <td style="padding:10px; border-bottom:1px solid #e5e7eb; text-align:right;">₹{material_expense}</td>
-            </tr>
+        if training_invoice_file is None and not expense_files:
+            st.error("Please upload at least one invoice or bill.")
+            return
 
-            <tr>
-                <td style="padding:10px; border-bottom:1px solid #e5e7eb;">Other Expense</td>
-                <td style="padding:10px; border-bottom:1px solid #e5e7eb; text-align:right;">₹{other_expense}</td>
-            </tr>
-        </table>
+        saved_files = []
 
-        <div style="text-align:right; margin-top:25px;">
-            <p><b>Subtotal:</b> ₹{subtotal}</p>
-            <p><b>Tax ({tax_rate}%):</b> ₹{tax_amount}</p>
-            <h2 style="color:#1e3a8a;">TOTAL: ₹{total_amount}</h2>
-        </div>
+        if training_invoice_file is not None:
+            file_name, file_path = save_uploaded_file(
+                training_invoice_file,
+                request_id,
+                "training_invoice"
+            )
 
-        <h3 style="background:#1e3a8a; color:white; padding:10px; border-radius:6px;">
-            OTHER COMMENTS
-        </h3>
+            saved_files.append({
+                "invoice_id": f"INV{len(invoices_df) + len(saved_files) + 1:03d}",
+                "request_id": request_id,
+                "invoice_type": "Training Invoice",
+                "file_name": file_name,
+                "file_path": file_path,
+                "amount": training_invoice_amount,
+                "approved_budget": approved_budget,
+                "total_invoice_amount": total_expense_amount,
+                "remaining_budget": remaining_budget,
+                "invoice_status": invoice_status,
+                "remarks": training_invoice_remarks,
+                "submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            })
 
-        <p>{comments}</p>
+        for uploaded_file in expense_files:
+            file_name, file_path = save_uploaded_file(
+                uploaded_file,
+                request_id,
+                "expense_bill"
+            )
 
-        <p style="text-align:center; margin-top:30px;">
-            <b>Thank You For Your Business!</b>
-        </p>
-
-    </div>
-    """
-
-    st.subheader("Invoice Preview")
-
-    components.html(
-    invoice_html,
-    height=900,
-    scrolling=True
-)
-
-    if st.button("Submit Invoice"):
-
-        new_invoice = {
-            "invoice_id": invoice_number,
-            "request_id": request_id,
-            "company_name": company_name,
-            "bill_to": bill_to,
-            "invoice_date": str(invoice_date),
-            "due_date": str(due_date),
-            "service_fee": service_fee,
-            "stay_expense": stay_expense,
-            "travel_expense": travel_expense,
-            "food_expense": food_expense,
-            "material_expense": material_expense,
-            "other_expense": other_expense,
-            "subtotal": subtotal,
-            "tax_rate": tax_rate,
-            "tax_amount": tax_amount,
-            "total_amount": total_amount,
-            "invoice_status": "Pending Director Invoice Approval",
-            "submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
+            saved_files.append({
+                "invoice_id": f"INV{len(invoices_df) + len(saved_files) + 1:03d}",
+                "request_id": request_id,
+                "invoice_type": "Expense Bill",
+                "file_name": file_name,
+                "file_path": file_path,
+                "amount": stay_amount + travel_amount + food_amount + other_amount,
+                "approved_budget": approved_budget,
+                "total_invoice_amount": total_expense_amount,
+                "remaining_budget": remaining_budget,
+                "invoice_status": invoice_status,
+                "remarks": expense_remarks,
+                "submitted_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            })
 
         invoices_df = pd.concat(
-            [invoices_df, pd.DataFrame([new_invoice])],
+            [invoices_df, pd.DataFrame(saved_files)],
             ignore_index=True
         )
 
-        invoices_df.to_csv(
-            INVOICES_FILE,
-            index=False
-        )
+        invoices_df.to_csv(INVOICES_FILE, index=False)
 
-        st.success("Invoice generated and submitted successfully.")
+        st.success("Invoices uploaded and saved successfully.")
+        st.info(f"Files saved in folder: {UPLOAD_FOLDER}")
+        st.info(f"Invoice records saved in: {INVOICES_FILE}")
