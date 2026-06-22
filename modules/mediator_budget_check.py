@@ -1,7 +1,26 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 
 REQUESTS_FILE = "requests.csv"
+
+
+AVAILABLE_BUDGET_MASTER = {
+    "Chandigarh University": {
+        "Apr-26": 0,
+        "May-26": 388009,
+        "Jun-26": 60000,
+        "Jul-26": 60000,
+        "Aug-26": 60000,
+        "Sep-26": 60000,
+        "Oct-26": 60000,
+        "Nov-26": 0,
+        "Dec-26": 75000,
+        "Jan-27": 75000,
+        "Feb-27": 75000,
+        "Mar-27": 75000,
+    }
+}
 
 
 def safe_int(value, default=0):
@@ -11,6 +30,25 @@ def safe_int(value, default=0):
         return int(float(value))
     except:
         return default
+
+
+def get_month_key_from_date(date_value):
+    try:
+        parsed_date = pd.to_datetime(date_value)
+        return parsed_date.strftime("%b-%y")
+    except:
+        return ""
+
+
+def get_available_budget(college_name, month_key):
+    college_name = str(college_name).lower()
+
+    if "chandigarh" in college_name:
+        return AVAILABLE_BUDGET_MASTER.get(
+            "Chandigarh University", {}
+        ).get(month_key, 0)
+
+    return 0
 
 
 def show_mediator_budget_check():
@@ -100,6 +138,33 @@ def show_mediator_budget_check():
     })
 
     st.table(requester_table)
+
+    st.subheader("Total Available Budget")
+
+    college_name = selected_request.get("college_name", "")
+    training_start_date = selected_request.get("start_date", "")
+    month_key = get_month_key_from_date(training_start_date)
+
+    total_available_budget = get_available_budget(
+        college_name,
+        month_key
+    )
+
+    b1, b2, b3 = st.columns(3)
+
+    with b1:
+        st.metric("College / University", college_name)
+
+    with b2:
+        st.metric("Budget Month", month_key if month_key else "Not Found")
+
+    with b3:
+        st.metric("Total Available Budget", f"₹{total_available_budget:,.0f}")
+
+    if total_available_budget == 0:
+        st.warning(
+            "No available budget found for this university/month in the sample budget master."
+        )
 
     st.subheader("Approver Budget Calculation")
 
@@ -199,6 +264,26 @@ def show_mediator_budget_check():
         + food_total
     )
 
+    remaining_after_approval = total_available_budget - approver_estimated_budget
+
+    st.subheader("Available Budget vs Approver Estimate")
+
+    a1, a2, a3 = st.columns(3)
+
+    with a1:
+        st.metric("Total Available Budget", f"₹{total_available_budget:,.0f}")
+
+    with a2:
+        st.metric("Approver Estimated Budget", f"₹{approver_estimated_budget:,.0f}")
+
+    with a3:
+        st.metric("Balance After Approval", f"₹{remaining_after_approval:,.0f}")
+
+    if total_available_budget > 0 and approver_estimated_budget > total_available_budget:
+        st.error("Approver estimated budget exceeds the available budget.")
+    elif total_available_budget > 0:
+        st.success("Approver estimated budget is within the available budget.")
+
     st.subheader("Approver Cost Breakdown")
 
     cost_table = pd.DataFrame({
@@ -295,12 +380,15 @@ def show_mediator_budget_check():
             "stay_total",
             "food_total",
             "estimated_budget",
-            "budget_difference"
+            "budget_difference",
+            "total_available_budget",
+            "remaining_after_approval"
         ]
 
         text_columns = [
             "approver_outstation_travel_mode",
-            "approver_remarks"
+            "approver_remarks",
+            "budget_month"
         ]
 
         for col in numeric_columns:
@@ -337,6 +425,10 @@ def show_mediator_budget_check():
         requests_df.loc[index, "food_total"] = food_total
         requests_df.loc[index, "estimated_budget"] = approver_estimated_budget
         requests_df.loc[index, "budget_difference"] = difference
+
+        requests_df.loc[index, "total_available_budget"] = total_available_budget
+        requests_df.loc[index, "remaining_after_approval"] = remaining_after_approval
+        requests_df.loc[index, "budget_month"] = str(month_key)
 
         requests_df.at[index, "approver_remarks"] = str(approver_remarks)
 
