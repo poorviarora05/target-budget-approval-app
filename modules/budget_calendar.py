@@ -7,7 +7,7 @@ import streamlit.components.v1 as components
 DUMMY_BUDGETS = {
     "Chandigarh University": {
         "Apr-26": 100000, "May-26": 120000, "Jun-26": 90000,
-        "Jul-26": 150000, "Aug-26": 110000, "Sep-26": 130000,
+        "Jul-26": 70000, "Aug-26": 110000, "Sep-26": 130000,
         "Oct-26": 95000, "Nov-26": 140000, "Dec-26": 160000,
         "Jan-27": 125000, "Feb-27": 115000, "Mar-27": 135000,
     },
@@ -28,17 +28,59 @@ DUMMY_BUDGETS = {
 
 TRAININGS = {
     "Chandigarh University": [
-        {"title": "AI/ML Training", "start": date(2026, 7, 1), "end": date(2026, 7, 5), "status": "scheduled"},
-        {"title": "University Event", "start": date(2026, 7, 8), "end": date(2026, 7, 10), "status": "blocked"},
-        {"title": "Data Science Bootcamp", "start": date(2026, 7, 14), "end": date(2026, 7, 18), "status": "upcoming"},
+        {
+            "title": "AI/ML Training",
+            "start": date(2026, 7, 3),
+            "end": date(2026, 7, 7),
+            "status": "scheduled",
+            "cost": 50000,
+        },
+        {
+            "title": "University Event",
+            "start": date(2026, 7, 10),
+            "end": date(2026, 7, 11),
+            "status": "blocked",
+            "cost": 0,
+        },
+        {
+            "title": "Data Science Bootcamp",
+            "start": date(2026, 7, 18),
+            "end": date(2026, 7, 20),
+            "status": "upcoming",
+            "cost": 15000,
+        },
     ],
     "Sharda University": [
-        {"title": "Generative AI Workshop", "start": date(2026, 7, 3), "end": date(2026, 7, 6), "status": "scheduled"},
-        {"title": "Cloud Computing Session", "start": date(2026, 7, 15), "end": date(2026, 7, 17), "status": "upcoming"},
+        {
+            "title": "Generative AI Workshop",
+            "start": date(2026, 7, 3),
+            "end": date(2026, 7, 6),
+            "status": "scheduled",
+            "cost": 45000,
+        },
+        {
+            "title": "Cloud Computing Session",
+            "start": date(2026, 7, 15),
+            "end": date(2026, 7, 17),
+            "status": "upcoming",
+            "cost": 25000,
+        },
     ],
     "Galgotias University": [
-        {"title": "Cyber Security Program", "start": date(2026, 7, 11), "end": date(2026, 7, 13), "status": "blocked"},
-        {"title": "Python Training", "start": date(2026, 7, 22), "end": date(2026, 7, 24), "status": "upcoming"},
+        {
+            "title": "Cyber Security Program",
+            "start": date(2026, 7, 11),
+            "end": date(2026, 7, 13),
+            "status": "blocked",
+            "cost": 30000,
+        },
+        {
+            "title": "Python Training",
+            "start": date(2026, 7, 22),
+            "end": date(2026, 7, 24),
+            "status": "upcoming",
+            "cost": 20000,
+        },
     ],
 }
 
@@ -50,8 +92,29 @@ def get_month_key(month_number, year):
 def get_status_for_day(day_date, university):
     for training in TRAININGS.get(university, []):
         if training["start"] <= day_date <= training["end"]:
-            return training["status"], training["title"]
-    return "available", ""
+            return training["status"], training["title"], training.get("cost", 0)
+    return "available", "", 0
+
+
+def get_budget_usage(university, month_number, year, selected_date=None):
+    exhausted = 0
+
+    for training in TRAININGS.get(university, []):
+        same_month = (
+            training["start"].month == month_number
+            and training["start"].year == year
+        )
+
+        if not same_month:
+            continue
+
+        if selected_date is None:
+            exhausted += training.get("cost", 0)
+        else:
+            if training["end"] <= selected_date:
+                exhausted += training.get("cost", 0)
+
+    return exhausted
 
 
 def show_budget_calendar():
@@ -89,16 +152,25 @@ def show_budget_calendar():
 
     with col4:
         selected_date = st.date_input(
-            "Select Date",
-            value=date(selected_year, month_number, 1),
+            "Check Budget On",
+            value=date(selected_year, month_number, 15),
             min_value=date(selected_year, month_number, 1),
             max_value=date(selected_year, month_number, max_day)
         )
 
     month_key = get_month_key(month_number, selected_year)
-    budget = DUMMY_BUDGETS.get(selected_university, {}).get(month_key, 0)
+    month_budget = DUMMY_BUDGETS.get(selected_university, {}).get(month_key, 0)
 
-    selected_status, selected_title = get_status_for_day(
+    exhausted_amount = get_budget_usage(
+        selected_university,
+        month_number,
+        selected_year,
+        selected_date
+    )
+
+    left_amount = month_budget - exhausted_amount
+
+    selected_status, selected_title, selected_cost = get_status_for_day(
         selected_date,
         selected_university
     )
@@ -128,9 +200,14 @@ def show_budget_calendar():
                 days_html += '<div class="empty-box"></div>'
             else:
                 current_date = date(selected_year, month_number, day)
-                status, title = get_status_for_day(current_date, selected_university)
+                status, title, cost = get_status_for_day(
+                    current_date,
+                    selected_university
+                )
 
-                selected_class = "selected-day" if current_date == selected_date else ""
+                selected_class = ""
+                if current_date == selected_date:
+                    selected_class = "selected-day"
 
                 chip = ""
                 if status != "available":
@@ -147,7 +224,12 @@ def show_budget_calendar():
     found = False
 
     for training in TRAININGS.get(selected_university, []):
-        if training["start"].month == month_number and training["start"].year == selected_year:
+        same_month = (
+            training["start"].month == month_number
+            and training["start"].year == selected_year
+        )
+
+        if same_month:
             found = True
             training_cards += f'''
             <div class="training-card">
@@ -156,6 +238,7 @@ def show_budget_calendar():
                     {training["start"].strftime("%d %b %Y")} - {training["end"].strftime("%d %b %Y")}
                 </div>
                 <div class="training-meta">Status: {training["status"].title()}</div>
+                <div class="training-cost">Cost: ₹{training.get("cost", 0):,.0f}</div>
             </div>
             '''
 
@@ -167,6 +250,9 @@ def show_budget_calendar():
         selected_event_line = f'''
         <div class="label">Event</div>
         <div class="normal-text">{selected_title}</div>
+
+        <div class="label">Event Cost</div>
+        <div class="normal-text">₹{selected_cost:,.0f}</div>
         '''
 
     html = f'''
@@ -301,16 +387,16 @@ def show_budget_calendar():
         }}
 
         .side-heading {{
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 900;
-            margin-bottom: 22px;
+            margin-bottom: 20px;
         }}
 
         .legend-row {{
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             font-size: 15px;
             font-weight: 800;
             color: #334155;
@@ -336,13 +422,6 @@ def show_budget_calendar():
             margin-bottom: 6px;
         }}
 
-        .university {{
-            font-size: 21px;
-            font-weight: 900;
-            margin-bottom: 20px;
-            line-height: 1.3;
-        }}
-
         .normal-text {{
             font-size: 16px;
             font-weight: 800;
@@ -350,15 +429,36 @@ def show_budget_calendar():
             color: #0F172A;
         }}
 
+        .university {{
+            font-size: 20px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }}
+
         .budget {{
-            font-size: 34px;
+            font-size: 32px;
             font-weight: 900;
             color: #4F46E5;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
+        }}
+
+        .exhausted {{
+            font-size: 30px;
+            font-weight: 900;
+            color: #DC2626;
+            margin-bottom: 18px;
+        }}
+
+        .left {{
+            font-size: 30px;
+            font-weight: 900;
+            color: #16A34A;
+            margin-bottom: 18px;
         }}
 
         .training-heading {{
-            font-size: 26px;
+            font-size: 25px;
             font-weight: 900;
             margin: 10px 0 14px 0;
         }}
@@ -381,6 +481,13 @@ def show_budget_calendar():
             font-size: 13px;
             color: #64748B;
             margin-top: 5px;
+        }}
+
+        .training-cost {{
+            margin-top: 8px;
+            font-size: 14px;
+            font-weight: 900;
+            color: #4F46E5;
         }}
 
         .no-training {{
@@ -413,7 +520,7 @@ def show_budget_calendar():
                 </div>
 
                 <div class="side-card">
-                    <div class="label">Selected Date</div>
+                    <div class="label">Check Budget On</div>
                     <div class="normal-text">{selected_date.strftime("%d %B %Y")}</div>
 
                     <div class="label">Date Status</div>
@@ -425,7 +532,13 @@ def show_budget_calendar():
                     <div class="university">{selected_university}</div>
 
                     <div class="label">Month Budget</div>
-                    <div class="budget">₹{budget:,.0f}</div>
+                    <div class="budget">₹{month_budget:,.0f}</div>
+
+                    <div class="label">Exhausted Amount</div>
+                    <div class="exhausted">₹{exhausted_amount:,.0f}</div>
+
+                    <div class="label">Left Amount</div>
+                    <div class="left">₹{left_amount:,.0f}</div>
                 </div>
 
                 <div class="training-heading">Trainings</div>
@@ -436,4 +549,4 @@ def show_budget_calendar():
     </html>
     '''
 
-    components.html(html, height=760, scrolling=False)
+    components.html(html, height=850, scrolling=False)
