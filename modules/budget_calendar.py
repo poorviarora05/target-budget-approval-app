@@ -38,14 +38,12 @@ def show_budget_calendar():
         box-shadow: 0 10px 28px rgba(15,23,42,0.06);
         margin-top: 18px;
     }
-
     .calendar-title {
         font-size: 26px;
         font-weight: 800;
         color: #0F172A;
         margin-bottom: 18px;
     }
-
     .weekday {
         text-align: center;
         font-weight: 800;
@@ -53,7 +51,6 @@ def show_budget_calendar():
         font-size: 14px;
         padding-bottom: 10px;
     }
-
     .calendar-day {
         height: 88px;
         border-radius: 18px;
@@ -67,7 +64,6 @@ def show_budget_calendar():
         color: #0F172A;
         box-shadow: 0 4px 12px rgba(15,23,42,0.04);
     }
-
     .calendar-day-selected {
         height: 88px;
         border-radius: 18px;
@@ -81,11 +77,9 @@ def show_budget_calendar():
         color: #1D4ED8;
         box-shadow: 0 8px 22px rgba(37,99,235,0.22);
     }
-
     .calendar-empty {
         height: 88px;
     }
-
     .budget-card {
         background: white;
         padding: 24px;
@@ -93,14 +87,12 @@ def show_budget_calendar():
         border: 1px solid #E5E7EB;
         box-shadow: 0 10px 24px rgba(15,23,42,0.06);
     }
-
     .budget-label {
         font-size: 14px;
         color: #64748B;
         font-weight: 700;
         margin-bottom: 8px;
     }
-
     .budget-value {
         font-size: 30px;
         color: #2563EB;
@@ -136,13 +128,13 @@ def show_budget_calendar():
 
     with col3:
         selected_date = st.date_input(
-    "Select Date",
-    value=datetime(year, month_number, 1).date(),
-    min_value=datetime(year, month_number, 1).date(),
-    max_value=datetime(year, month_number, max_day).date()
-)
+            "Select Date",
+            value=datetime(year, month_number, 1).date(),
+            min_value=datetime(year, month_number, 1).date(),
+            max_value=datetime(year, month_number, max_day).date()
+        )
 
-selected_day = selected_date.day
+    selected_day = selected_date.day
     budget = DUMMY_BUDGETS[selected_university][selected_month]
 
     st.markdown("---")
