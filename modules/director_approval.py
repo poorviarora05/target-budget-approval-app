@@ -91,17 +91,25 @@ def show_director_approval():
 
     st.subheader("Pending Requests")
 
+    h1, h2, h3, h4, h5, h6 = st.columns([0.9, 1.1, 2, 2, 1.5, 1.5])
+    h1.write("**Select**")
+    h2.write("**Request ID**")
+    h3.write("**University**")
+    h4.write("**Topic**")
+    h5.write("**Budget**")
+    h6.write("**Risk**")
+
     selected_ids = []
 
     for _, row in pending_requests.iterrows():
         request_id = row.get("request_id", "")
         values = get_budget_values(row)
 
-        c1, c2, c3, c4, c5, c6 = st.columns([0.5, 1.1, 2, 2, 1.5, 1.5])
+        c1, c2, c3, c4, c5, c6 = st.columns([0.9, 1.1, 2, 2, 1.5, 1.5])
 
         with c1:
             selected = st.checkbox(
-                "",
+                "Select",
                 key=f"partner_select_{request_id}"
             )
 
@@ -194,18 +202,46 @@ def show_director_approval():
 
             st.table(cost_table)
 
+            editable_budget = st.number_input(
+                f"Total Available Budget for {selected_id}",
+                min_value=0,
+                value=int(values["total_available_budget"])
+                if values["total_available_budget"] > 0
+                else 100000,
+                step=1000,
+                key=f"partner_budget_{selected_id}"
+            )
+
+            final_remaining = editable_budget - values["estimated_budget"]
+
+            if editable_budget > 0:
+                final_utilization = (values["estimated_budget"] / editable_budget) * 100
+            else:
+                final_utilization = 0
+
             m1, m2, m3 = st.columns(3)
-            m1.metric("Available Budget", f"₹{values['total_available_budget']:,.0f}")
+            m1.metric("Final Available Budget", f"₹{editable_budget:,.0f}")
             m2.metric("Estimated Cost", f"₹{values['estimated_budget']:,.0f}")
-            m3.metric("Remaining / Loss", f"₹{values['remaining_after_approval']:,.0f}")
+            m3.metric("Remaining / Loss", f"₹{final_remaining:,.0f}")
 
             m4, m5 = st.columns(2)
-            m4.metric("Risk Level", values["risk_level"])
-            m5.metric("Budget Utilization", f"{values['utilization_percentage']:.1f}%")
 
-            if values["risk_level"] == "Low Risk":
+            if final_utilization <= 80:
+                final_risk_level = "Low Risk"
+                final_recommendation = "Recommended for Approval"
+            elif final_utilization <= 100:
+                final_risk_level = "Medium Risk"
+                final_recommendation = "Review Before Approval"
+            else:
+                final_risk_level = "High Risk"
+                final_recommendation = "Budget Exceeded"
+
+            m4.metric("Risk Level", final_risk_level)
+            m5.metric("Budget Utilization", f"{final_utilization:.1f}%")
+
+            if final_risk_level == "Low Risk":
                 st.success("System Recommendation: Budget is healthy and can be approved.")
-            elif values["risk_level"] == "Medium Risk":
+            elif final_risk_level == "Medium Risk":
                 st.warning("System Recommendation: Budget is close to limit. Review carefully.")
             else:
                 st.error("System Recommendation: Budget exceeded. Reallocation required.")
@@ -231,18 +267,37 @@ def show_director_approval():
             selected_request = requests_df.loc[index]
             values = get_budget_values(selected_request)
 
-            available_budget = values["total_available_budget"]
+            available_budget = st.session_state.get(
+                f"partner_budget_{selected_id}",
+                int(values["total_available_budget"])
+                if values["total_available_budget"] > 0
+                else 100000
+            )
+
             estimated_budget = values["estimated_budget"]
-            remaining_budget = values["remaining_after_approval"]
-            utilization_percentage = values["utilization_percentage"]
-            risk_level = values["risk_level"]
-            recommendation = values["recommendation"]
+            remaining_budget = available_budget - estimated_budget
+
+            if available_budget > 0:
+                utilization_percentage = (estimated_budget / available_budget) * 100
+            else:
+                utilization_percentage = 0
+
+            if utilization_percentage <= 80:
+                risk_level = "Low Risk"
+                recommendation = "Recommended for Approval"
+            elif utilization_percentage <= 100:
+                risk_level = "Medium Risk"
+                recommendation = "Review Before Approval"
+            else:
+                risk_level = "High Risk"
+                recommendation = "Budget Exceeded"
 
             budget_health_score = max(
                 0,
                 round(100 - abs(100 - utilization_percentage))
             )
 
+            requests_df.loc[index, "total_available_budget"] = available_budget
             requests_df.loc[index, "available_budget"] = available_budget
             requests_df.loc[index, "partner_final_available_budget"] = available_budget
             requests_df.loc[index, "remaining_budget"] = remaining_budget
