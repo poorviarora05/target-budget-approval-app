@@ -1,56 +1,32 @@
 import streamlit as st
-from streamlit_calendar import calendar
+import calendar
 from datetime import datetime
 
 DUMMY_BUDGETS = {
     "Chandigarh University": {
-        "Apr-26": 100000,
-        "May-26": 120000,
-        "Jun-26": 90000,
-        "Jul-26": 150000,
-        "Aug-26": 110000,
-        "Sep-26": 130000,
-        "Oct-26": 95000,
-        "Nov-26": 140000,
-        "Dec-26": 160000,
-        "Jan-27": 125000,
-        "Feb-27": 115000,
-        "Mar-27": 135000
+        "Apr-26": 100000, "May-26": 120000, "Jun-26": 90000,
+        "Jul-26": 150000, "Aug-26": 110000, "Sep-26": 130000,
+        "Oct-26": 95000, "Nov-26": 140000, "Dec-26": 160000,
+        "Jan-27": 125000, "Feb-27": 115000, "Mar-27": 135000
     },
     "Sharda University": {
-        "Apr-26": 80000,
-        "May-26": 95000,
-        "Jun-26": 70000,
-        "Jul-26": 110000,
-        "Aug-26": 90000,
-        "Sep-26": 100000,
-        "Oct-26": 85000,
-        "Nov-26": 95000,
-        "Dec-26": 120000,
-        "Jan-27": 90000,
-        "Feb-27": 85000,
-        "Mar-27": 100000
+        "Apr-26": 80000, "May-26": 95000, "Jun-26": 70000,
+        "Jul-26": 110000, "Aug-26": 90000, "Sep-26": 100000,
+        "Oct-26": 85000, "Nov-26": 95000, "Dec-26": 120000,
+        "Jan-27": 90000, "Feb-27": 85000, "Mar-27": 100000
     },
     "Galgotias University": {
-        "Apr-26": 60000,
-        "May-26": 75000,
-        "Jun-26": 65000,
-        "Jul-26": 90000,
-        "Aug-26": 70000,
-        "Sep-26": 85000,
-        "Oct-26": 75000,
-        "Nov-26": 80000,
-        "Dec-26": 95000,
-        "Jan-27": 70000,
-        "Feb-27": 65000,
-        "Mar-27": 80000
+        "Apr-26": 60000, "May-26": 75000, "Jun-26": 65000,
+        "Jul-26": 90000, "Aug-26": 70000, "Sep-26": 85000,
+        "Oct-26": 75000, "Nov-26": 80000, "Dec-26": 95000,
+        "Jan-27": 70000, "Feb-27": 65000, "Mar-27": 80000
     }
 }
 
 
 def show_budget_calendar():
 
-    st.header("Clickable Budget Calendar")
+    st.header("Budget Calendar")
 
     months = [
         "Apr-26", "May-26", "Jun-26", "Jul-26",
@@ -58,73 +34,87 @@ def show_budget_calendar():
         "Dec-26", "Jan-27", "Feb-27", "Mar-27"
     ]
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
-        selected_university = st.selectbox(
-            "Select University",
-            list(DUMMY_BUDGETS.keys())
-        )
+        university = st.selectbox("Select University", list(DUMMY_BUDGETS.keys()))
 
     with col2:
-        selected_month = st.selectbox(
-            "Select Month",
-            months
-        )
+        selected_month = st.selectbox("Select Month", months)
 
     month_abbr, year_suffix = selected_month.split("-")
     month_number = datetime.strptime(month_abbr, "%b").month
     year = int("20" + year_suffix)
+    max_day = calendar.monthrange(year, month_number)[1]
 
-    budget = DUMMY_BUDGETS[selected_university][selected_month]
+    with col3:
+        selected_date = st.date_input(
+            "Select Date",
+            value=datetime(year, month_number, 1).date(),
+            min_value=datetime(year, month_number, 1).date(),
+            max_value=datetime(year, month_number, max_day).date()
+        )
 
-    if "selected_budget_date" not in st.session_state:
-        st.session_state.selected_budget_date = f"{year}-{month_number:02d}-01"
-
-    calendar_options = {
-        "initialView": "dayGridMonth",
-        "initialDate": f"{year}-{month_number:02d}-01",
-        "selectable": True,
-        "editable": False,
-        "height": 650,
-        "headerToolbar": {
-            "left": "prev,next today",
-            "center": "title",
-            "right": "dayGridMonth"
-        }
-    }
-
-    calendar_events = [
-        {
-            "title": "Selected",
-            "start": st.session_state.selected_budget_date,
-            "backgroundColor": "#2563EB",
-            "borderColor": "#2563EB",
-            "textColor": "white"
-        }
-    ]
-
-    calendar_response = calendar(
-        events=calendar_events,
-        options=calendar_options,
-        key=f"budget_calendar_{selected_university}_{selected_month}"
-    )
-
-    if calendar_response:
-        if "dateClick" in calendar_response:
-            clicked_date = calendar_response["dateClick"]["date"]
-            st.session_state.selected_budget_date = clicked_date
-
-    selected_date = st.session_state.selected_budget_date
+    selected_day = selected_date.day
+    budget = DUMMY_BUDGETS[university][selected_month]
 
     st.markdown("---")
 
-    col1, col2, col3 = st.columns(3)
+    c1, c2, c3 = st.columns(3)
+    c1.metric("University", university)
+    c2.metric("Selected Date", selected_date.strftime("%d-%b-%Y"))
+    c3.metric("Budget", f"₹{budget:,.0f}")
 
-    col1.metric("University", selected_university)
-    col2.metric("Selected Date", selected_date)
-    col3.metric("Budget", f"₹{budget:,.0f}")
+    st.subheader(f"{selected_month} Calendar")
 
-    st.success(
-        f"Budget for {selected_university} in {selected_month}: ₹{budget:,.0f}"
-    )
+    week_days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    header_cols = st.columns(7)
+
+    for i, day_name in enumerate(week_days):
+        header_cols[i].markdown(f"**{day_name}**")
+
+    month_calendar = calendar.monthcalendar(year, month_number)
+
+    for week in month_calendar:
+        cols = st.columns(7)
+
+        for i, day in enumerate(week):
+            with cols[i]:
+                if day == 0:
+                    st.write("")
+                elif day == selected_day:
+                    st.markdown(
+                        f"""
+                        <div style="
+                            background:#DBEAFE;
+                            border:2px solid #2563EB;
+                            border-radius:14px;
+                            padding:22px;
+                            text-align:center;
+                            font-size:24px;
+                            font-weight:800;
+                            color:#1D4ED8;
+                        ">
+                            {day}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.markdown(
+                        f"""
+                        <div style="
+                            background:white;
+                            border:1px solid #E5E7EB;
+                            border-radius:14px;
+                            padding:22px;
+                            text-align:center;
+                            font-size:24px;
+                            font-weight:800;
+                            color:#111827;
+                        ">
+                            {day}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
