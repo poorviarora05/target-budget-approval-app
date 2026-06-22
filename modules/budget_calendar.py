@@ -63,22 +63,59 @@ def show_budget_calendar():
         "July", "August", "September", "October", "November", "December"
     ]
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        selected_year = st.selectbox("Select Year", [2026, 2027, 2028, 2029, 2030])
+        selected_year = st.selectbox(
+            "Select Year",
+            [2026, 2027, 2028, 2029, 2030]
+        )
 
     with col2:
-        selected_month_name = st.selectbox("Select Month", month_names, index=6)
-
-    with col3:
-        selected_university = st.selectbox("Select University", list(DUMMY_BUDGETS.keys()))
+        selected_month_name = st.selectbox(
+            "Select Month",
+            month_names,
+            index=6
+        )
 
     month_number = month_names.index(selected_month_name) + 1
+    max_day = calendar.monthrange(selected_year, month_number)[1]
+
+    with col3:
+        selected_university = st.selectbox(
+            "Select University",
+            list(DUMMY_BUDGETS.keys())
+        )
+
+    with col4:
+        selected_date = st.date_input(
+            "Select Date",
+            value=date(selected_year, month_number, 1),
+            min_value=date(selected_year, month_number, 1),
+            max_value=date(selected_year, month_number, max_day)
+        )
+
     month_key = get_month_key(month_number, selected_year)
     budget = DUMMY_BUDGETS.get(selected_university, {}).get(month_key, 0)
 
-    cal = calendar.Calendar(firstweekday=6).monthdayscalendar(selected_year, month_number)
+    selected_status, selected_title = get_status_for_day(
+        selected_date,
+        selected_university
+    )
+
+    if selected_status == "scheduled":
+        selected_status_text = "Training Scheduled"
+    elif selected_status == "blocked":
+        selected_status_text = "Blocked / Unavailable"
+    elif selected_status == "upcoming":
+        selected_status_text = "Upcoming Training"
+    else:
+        selected_status_text = "Available"
+
+    cal = calendar.Calendar(firstweekday=6).monthdayscalendar(
+        selected_year,
+        month_number
+    )
 
     days_html = ""
 
@@ -93,20 +130,22 @@ def show_budget_calendar():
                 current_date = date(selected_year, month_number, day)
                 status, title = get_status_for_day(current_date, selected_university)
 
+                selected_class = "selected-day" if current_date == selected_date else ""
+
                 chip = ""
                 if status != "available":
                     chip = f'<div class="chip chip-{status}">{title}</div>'
 
                 days_html += f'''
-                <div class="day-box {status}">
+                <div class="day-box {status} {selected_class}">
                     <div class="day-number">{day}</div>
                     {chip}
                 </div>
                 '''
 
     training_cards = ""
-
     found = False
+
     for training in TRAININGS.get(selected_university, []):
         if training["start"].month == month_number and training["start"].year == selected_year:
             found = True
@@ -122,6 +161,13 @@ def show_budget_calendar():
 
     if not found:
         training_cards = '<div class="no-training">No trainings scheduled for this month.</div>'
+
+    selected_event_line = ""
+    if selected_title:
+        selected_event_line = f'''
+        <div class="label">Event</div>
+        <div class="normal-text">{selected_title}</div>
+        '''
 
     html = f'''
     <!DOCTYPE html>
@@ -144,7 +190,8 @@ def show_budget_calendar():
             box-sizing: border-box;
         }}
 
-        .calendar-card, .side-card {{
+        .calendar-card,
+        .side-card {{
             background: #ffffff;
             border: 1px solid #E5E7EB;
             border-radius: 24px;
@@ -176,7 +223,8 @@ def show_budget_calendar():
             padding: 8px 0;
         }}
 
-        .day-box, .empty-box {{
+        .day-box,
+        .empty-box {{
             height: 78px;
             border-radius: 15px;
             box-sizing: border-box;
@@ -227,6 +275,11 @@ def show_budget_calendar():
             border: 1.5px solid #86EFAC;
         }}
 
+        .selected-day {{
+            border: 3px solid #2563EB !important;
+            box-shadow: 0 0 0 4px rgba(37,99,235,0.15);
+        }}
+
         .chip-scheduled {{
             background: #F9A8D4;
             color: #831843;
@@ -274,6 +327,7 @@ def show_budget_calendar():
         .pink {{ background: #F9A8D4; }}
         .yellow {{ background: #FDE68A; }}
         .green {{ background: #86EFAC; }}
+        .blue {{ background: #2563EB; }}
 
         .label {{
             font-size: 14px;
@@ -285,14 +339,22 @@ def show_budget_calendar():
         .university {{
             font-size: 21px;
             font-weight: 900;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             line-height: 1.3;
         }}
 
+        .normal-text {{
+            font-size: 16px;
+            font-weight: 800;
+            margin-bottom: 18px;
+            color: #0F172A;
+        }}
+
         .budget {{
-            font-size: 36px;
+            font-size: 34px;
             font-weight: 900;
             color: #4F46E5;
+            margin-bottom: 20px;
         }}
 
         .training-heading {{
@@ -331,6 +393,7 @@ def show_budget_calendar():
         }}
     </style>
     </head>
+
     <body>
         <div class="layout">
             <div class="calendar-card">
@@ -346,9 +409,18 @@ def show_budget_calendar():
                     <div class="legend-row"><span class="dot pink"></span>Training Scheduled</div>
                     <div class="legend-row"><span class="dot yellow"></span>Blocked / Unavailable</div>
                     <div class="legend-row"><span class="dot green"></span>Upcoming Training</div>
+                    <div class="legend-row"><span class="dot blue"></span>Selected Date</div>
                 </div>
 
                 <div class="side-card">
+                    <div class="label">Selected Date</div>
+                    <div class="normal-text">{selected_date.strftime("%d %B %Y")}</div>
+
+                    <div class="label">Date Status</div>
+                    <div class="normal-text">{selected_status_text}</div>
+
+                    {selected_event_line}
+
                     <div class="label">University</div>
                     <div class="university">{selected_university}</div>
 
@@ -364,4 +436,4 @@ def show_budget_calendar():
     </html>
     '''
 
-    components.html(html, height=720, scrolling=False)
+    components.html(html, height=760, scrolling=False)
