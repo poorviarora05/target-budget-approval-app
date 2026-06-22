@@ -1,7 +1,6 @@
 import streamlit as st
 import calendar
 from datetime import datetime, date
-import streamlit.components.v1 as components
 
 
 DUMMY_BUDGETS = {
@@ -94,7 +93,217 @@ def show_budget_calendar():
         """
         <style>
         .block-container {
-            padding-top: 2rem;
+            padding-top: 1.5rem;
+        }
+
+        .page-title {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .title-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            background: #EEF2FF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+        }
+
+        .title-text {
+            font-size: 38px;
+            font-weight: 900;
+            color: #0F172A;
+            line-height: 1.1;
+        }
+
+        .title-subtext {
+            font-size: 16px;
+            color: #64748B;
+            margin-top: 5px;
+        }
+
+        .calendar-card {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 10px 26px rgba(15,23,42,0.06);
+            overflow: hidden;
+        }
+
+        .month-title {
+            text-align: center;
+            font-size: 34px;
+            font-weight: 900;
+            color: #0F172A;
+            margin-bottom: 22px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .weekday {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 900;
+            color: #475569;
+            padding-bottom: 8px;
+        }
+
+        .day-box {
+            height: 78px;
+            border-radius: 15px;
+            border: 1px solid #E5E7EB;
+            background: #FFFFFF;
+            padding: 8px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .empty-box {
+            height: 78px;
+            border-radius: 15px;
+            background: #F8FAFC;
+            opacity: 0.45;
+        }
+
+        .day-number {
+            font-size: 22px;
+            font-weight: 900;
+            color: #0F172A;
+            line-height: 1;
+        }
+
+        .chip {
+            margin-top: 13px;
+            padding: 5px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 900;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+        }
+
+        .scheduled {
+            background: #FCE7F3;
+            border: 1.5px solid #F9A8D4;
+        }
+
+        .blocked {
+            background: #FEF3C7;
+            border: 1.5px solid #FDE68A;
+        }
+
+        .upcoming {
+            background: #DCFCE7;
+            border: 1.5px solid #86EFAC;
+        }
+
+        .chip-scheduled {
+            background: #F9A8D4;
+            color: #831843;
+        }
+
+        .chip-blocked {
+            background: #FDE68A;
+            color: #92400E;
+        }
+
+        .chip-upcoming {
+            background: #86EFAC;
+            color: #166534;
+        }
+
+        .side-card {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 22px;
+            padding: 24px;
+            box-shadow: 0 10px 26px rgba(15,23,42,0.06);
+            margin-bottom: 18px;
+        }
+
+        .side-heading {
+            font-size: 28px;
+            font-weight: 900;
+            color: #0F172A;
+            margin-bottom: 22px;
+        }
+
+        .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            font-size: 16px;
+            font-weight: 800;
+            color: #334155;
+        }
+
+        .legend-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .pink-dot { background: #F9A8D4; }
+        .yellow-dot { background: #FDE68A; }
+        .green-dot { background: #86EFAC; }
+
+        .label {
+            font-size: 14px;
+            color: #64748B;
+            font-weight: 900;
+            margin-bottom: 6px;
+        }
+
+        .university-name {
+            font-size: 21px;
+            font-weight: 900;
+            color: #0F172A;
+            line-height: 1.3;
+            margin-bottom: 24px;
+        }
+
+        .budget-amount {
+            font-size: 36px;
+            font-weight: 900;
+            color: #4F46E5;
+            line-height: 1.2;
+        }
+
+        .training-card {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 8px 20px rgba(15,23,42,0.05);
+            margin-bottom: 14px;
+        }
+
+        .training-title {
+            font-size: 16px;
+            font-weight: 900;
+            color: #0F172A;
+            margin-bottom: 6px;
+        }
+
+        .training-meta {
+            font-size: 13px;
+            color: #64748B;
+            margin-top: 4px;
         }
         </style>
         """,
@@ -103,18 +312,11 @@ def show_budget_calendar():
 
     st.markdown(
         """
-        <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;">
-            <div style="
-                width:64px;height:64px;border-radius:18px;
-                background:#EEF2FF;display:flex;align-items:center;
-                justify-content:center;font-size:30px;">
-                📅
-            </div>
+        <div class="page-title">
+            <div class="title-icon">📅</div>
             <div>
-                <div style="font-size:38px;font-weight:900;color:#0F172A;">
-                    Budget & Training Calendar
-                </div>
-                <div style="font-size:16px;color:#64748B;margin-top:4px;">
+                <div class="title-text">Budget & Training Calendar</div>
+                <div class="title-subtext">
                     View training schedules, blocked dates and university budgets
                 </div>
             </div>
@@ -123,200 +325,112 @@ def show_budget_calendar():
         unsafe_allow_html=True,
     )
 
-    st.write("")
-
-    col1, col2, col3 = st.columns(3)
-
     month_names = [
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
     ]
 
+    col1, col2, col3 = st.columns(3)
+
     with col1:
-        selected_year = st.selectbox("Select Year", [2026, 2027, 2028, 2029, 2030])
+        selected_year = st.selectbox(
+            "Select Year",
+            [2026, 2027, 2028, 2029, 2030],
+            index=0,
+        )
 
     with col2:
-        selected_month_name = st.selectbox("Select Month", month_names, index=6)
+        selected_month_name = st.selectbox(
+            "Select Month",
+            month_names,
+            index=6,
+        )
 
     with col3:
-        selected_university = st.selectbox("Select University", list(DUMMY_BUDGETS.keys()))
+        selected_university = st.selectbox(
+            "Select University",
+            list(DUMMY_BUDGETS.keys()),
+        )
 
     month_number = month_names.index(selected_month_name) + 1
     month_key = get_month_key(month_number, selected_year)
     budget = DUMMY_BUDGETS.get(selected_university, {}).get(month_key, 0)
 
+    st.write("")
+
     left, right = st.columns([2.4, 1])
 
     with left:
-        cal = calendar.Calendar(firstweekday=6).monthdayscalendar(selected_year, month_number)
+        cal = calendar.Calendar(firstweekday=6).monthdayscalendar(
+            selected_year,
+            month_number,
+        )
 
-        days_html = ""
+        calendar_html = f"""
+        <div class="calendar-card">
+            <div class="month-title">{selected_month_name} {selected_year}</div>
+            <div class="calendar-grid">
+        """
 
         for day_name in ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]:
-            days_html += f'<div class="weekday">{day_name}</div>'
+            calendar_html += f"""
+                <div class="weekday">{day_name}</div>
+            """
 
         for week in cal:
             for day in week:
                 if day == 0:
-                    days_html += '<div class="empty-box"></div>'
+                    calendar_html += """
+                        <div class="empty-box"></div>
+                    """
                 else:
                     current_date = date(selected_year, month_number, day)
-                    status, title = get_status_for_day(current_date, selected_university)
+                    status, title = get_status_for_day(
+                        current_date,
+                        selected_university,
+                    )
 
-                    chip = ""
+                    chip_html = ""
                     if status != "available":
-                        chip = f'<div class="chip chip-{status}">{title}</div>'
+                        chip_html = f"""
+                            <div class="chip chip-{status}">
+                                {title}
+                            </div>
+                        """
 
-                    days_html += f"""
-                    <div class="day-box {status}">
-                        <div class="day-number">{day}</div>
-                        {chip}
-                    </div>
+                    calendar_html += f"""
+                        <div class="day-box {status}">
+                            <div class="day-number">{day}</div>
+                            {chip_html}
+                        </div>
                     """
 
-        calendar_html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-        <style>
-            body {{
-                margin: 0;
-                font-family: Arial, sans-serif;
-                background: transparent;
-            }}
-
-            .calendar-card {{
-                background: white;
-                border: 1px solid #E5E7EB;
-                border-radius: 22px;
-                padding: 22px;
-                box-shadow: 0 8px 24px rgba(15,23,42,0.06);
-            }}
-
-            .month-title {{
-                text-align: center;
-                font-size: 30px;
-                font-weight: 900;
-                color: #0F172A;
-                margin-bottom: 20px;
-            }}
-
-            .calendar-grid {{
-                display: grid;
-                grid-template-columns: repeat(7, 1fr);
-                gap: 10px;
-            }}
-
-            .weekday {{
-                text-align: center;
-                font-size: 14px;
-                font-weight: 800;
-                color: #475569;
-                padding-bottom: 8px;
-            }}
-
-            .day-box {{
-                height: 76px;
-                border-radius: 14px;
-                border: 1px solid #E5E7EB;
-                background: white;
-                padding: 8px;
-                box-sizing: border-box;
-            }}
-
-            .empty-box {{
-                height: 76px;
-                border-radius: 14px;
-                background: #F8FAFC;
-                opacity: 0.45;
-            }}
-
-            .day-number {{
-                font-size: 21px;
-                font-weight: 900;
-                color: #0F172A;
-                line-height: 1;
-            }}
-
-            .chip {{
-                margin-top: 12px;
-                padding: 5px 7px;
-                border-radius: 999px;
-                font-size: 11px;
-                font-weight: 800;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                text-align: center;
-            }}
-
-            .scheduled {{
-                background: #FCE7F3;
-                border: 1.5px solid #F9A8D4;
-            }}
-
-            .blocked {{
-                background: #FEF3C7;
-                border: 1.5px solid #FDE68A;
-            }}
-
-            .upcoming {{
-                background: #DCFCE7;
-                border: 1.5px solid #86EFAC;
-            }}
-
-            .chip-scheduled {{
-                background: #F9A8D4;
-                color: #831843;
-            }}
-
-            .chip-blocked {{
-                background: #FDE68A;
-                color: #92400E;
-            }}
-
-            .chip-upcoming {{
-                background: #86EFAC;
-                color: #166534;
-            }}
-        </style>
-        </head>
-
-        <body>
-            <div class="calendar-card">
-                <div class="month-title">{selected_month_name} {selected_year}</div>
-                <div class="calendar-grid">
-                    {days_html}
-                </div>
+        calendar_html += """
             </div>
-        </body>
-        </html>
+        </div>
         """
 
-        components.html(calendar_html, height=640, scrolling=False)
+        st.markdown(calendar_html, unsafe_allow_html=True)
 
     with right:
         st.markdown(
             """
-            <div style="
-                background:white;border:1px solid #E5E7EB;border-radius:20px;
-                padding:22px;box-shadow:0 8px 24px rgba(15,23,42,0.06);
-                margin-bottom:18px;">
-                <h3 style="margin-top:0;color:#0F172A;">Legend</h3>
+            <div class="side-card">
+                <div class="side-heading">Legend</div>
 
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;font-weight:800;color:#334155;">
-                    <span style="width:18px;height:18px;border-radius:50%;background:#F9A8D4;display:inline-block;"></span>
-                    Training Scheduled
+                <div class="legend-row">
+                    <span class="legend-dot pink-dot"></span>
+                    <span>Training Scheduled</span>
                 </div>
 
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;font-weight:800;color:#334155;">
-                    <span style="width:18px;height:18px;border-radius:50%;background:#FDE68A;display:inline-block;"></span>
-                    Blocked / Unavailable
+                <div class="legend-row">
+                    <span class="legend-dot yellow-dot"></span>
+                    <span>Blocked / Unavailable</span>
                 </div>
 
-                <div style="display:flex;align-items:center;gap:12px;font-weight:800;color:#334155;">
-                    <span style="width:18px;height:18px;border-radius:50%;background:#86EFAC;display:inline-block;"></span>
-                    Upcoming Training
+                <div class="legend-row">
+                    <span class="legend-dot green-dot"></span>
+                    <span>Upcoming Training</span>
                 </div>
             </div>
             """,
@@ -325,21 +439,12 @@ def show_budget_calendar():
 
         st.markdown(
             f"""
-            <div style="
-                background:white;border:1px solid #E5E7EB;border-radius:20px;
-                padding:22px;box-shadow:0 8px 24px rgba(15,23,42,0.06);
-                margin-bottom:18px;">
-                <div style="font-size:14px;color:#64748B;font-weight:800;">University</div>
-                <div style="font-size:22px;font-weight:900;color:#0F172A;margin-top:6px;">
-                    {selected_university}
-                </div>
+            <div class="side-card">
+                <div class="label">University</div>
+                <div class="university-name">{selected_university}</div>
 
-                <br>
-
-                <div style="font-size:14px;color:#64748B;font-weight:800;">Month Budget</div>
-                <div style="font-size:34px;font-weight:900;color:#4F46E5;margin-top:8px;">
-                    ₹{budget:,.0f}
-                </div>
+                <div class="label">Month Budget</div>
+                <div class="budget-amount">₹{budget:,.0f}</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -347,24 +452,25 @@ def show_budget_calendar():
 
         st.markdown("### Trainings")
 
-        found = False
+        trainings_found = False
 
         for training in TRAININGS.get(selected_university, []):
-            if training["start"].month == month_number and training["start"].year == selected_year:
-                found = True
+            if (
+                training["start"].month == month_number
+                and training["start"].year == selected_year
+            ):
+                trainings_found = True
+
                 st.markdown(
                     f"""
-                    <div style="
-                        background:white;border:1px solid #E5E7EB;border-radius:18px;
-                        padding:18px;box-shadow:0 8px 24px rgba(15,23,42,0.05);
-                        margin-bottom:14px;">
-                        <div style="font-size:16px;font-weight:900;color:#0F172A;">
-                            {training["title"]}
+                    <div class="training-card">
+                        <div class="training-title">{training["title"]}</div>
+                        <div class="training-meta">
+                            {training["start"].strftime("%d %b %Y")}
+                            -
+                            {training["end"].strftime("%d %b %Y")}
                         </div>
-                        <div style="font-size:13px;color:#64748B;margin-top:6px;">
-                            {training["start"].strftime("%d %b %Y")} - {training["end"].strftime("%d %b %Y")}
-                        </div>
-                        <div style="font-size:13px;color:#64748B;margin-top:4px;">
+                        <div class="training-meta">
                             Status: {training["status"].title()}
                         </div>
                     </div>
@@ -372,5 +478,5 @@ def show_budget_calendar():
                     unsafe_allow_html=True,
                 )
 
-        if not found:
+        if not trainings_found:
             st.info("No trainings scheduled for this month.")
