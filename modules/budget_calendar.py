@@ -30,6 +30,7 @@ TRAININGS = {
     "Chandigarh University": [
         {
             "title": "AI/ML Training",
+            "short_title": "AI/ML",
             "start": date(2026, 7, 3),
             "end": date(2026, 7, 7),
             "status": "scheduled",
@@ -37,6 +38,7 @@ TRAININGS = {
         },
         {
             "title": "University Event",
+            "short_title": "Event",
             "start": date(2026, 7, 10),
             "end": date(2026, 7, 11),
             "status": "blocked",
@@ -44,6 +46,7 @@ TRAININGS = {
         },
         {
             "title": "Data Science Bootcamp",
+            "short_title": "DS Bootcamp",
             "start": date(2026, 7, 18),
             "end": date(2026, 7, 20),
             "status": "upcoming",
@@ -53,6 +56,7 @@ TRAININGS = {
     "Sharda University": [
         {
             "title": "Generative AI Workshop",
+            "short_title": "GenAI",
             "start": date(2026, 7, 3),
             "end": date(2026, 7, 6),
             "status": "scheduled",
@@ -60,6 +64,7 @@ TRAININGS = {
         },
         {
             "title": "Cloud Computing Session",
+            "short_title": "Cloud",
             "start": date(2026, 7, 15),
             "end": date(2026, 7, 17),
             "status": "upcoming",
@@ -69,6 +74,7 @@ TRAININGS = {
     "Galgotias University": [
         {
             "title": "Cyber Security Program",
+            "short_title": "Cyber",
             "start": date(2026, 7, 11),
             "end": date(2026, 7, 13),
             "status": "blocked",
@@ -76,6 +82,7 @@ TRAININGS = {
         },
         {
             "title": "Python Training",
+            "short_title": "Python",
             "start": date(2026, 7, 22),
             "end": date(2026, 7, 24),
             "status": "upcoming",
@@ -92,8 +99,14 @@ def get_month_key(month_number, year):
 def get_status_for_day(day_date, university):
     for training in TRAININGS.get(university, []):
         if training["start"] <= day_date <= training["end"]:
-            return training["status"], training["title"], training.get("cost", 0)
-    return "available", "", 0
+            return (
+                training["status"],
+                training["title"],
+                training.get("short_title", training["title"]),
+                training.get("cost", 0),
+            )
+
+    return "available", "", "", 0
 
 
 def get_budget_usage(university, month_number, year, selected_date=None):
@@ -123,7 +136,7 @@ def show_budget_calendar():
 
     month_names = [
         "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
+        "July", "August", "September", "October", "November", "December",
     ]
 
     col1, col2, col3, col4 = st.columns(4)
@@ -131,14 +144,14 @@ def show_budget_calendar():
     with col1:
         selected_year = st.selectbox(
             "Select Year",
-            [2026, 2027, 2028, 2029, 2030]
+            [2026, 2027, 2028, 2029, 2030],
         )
 
     with col2:
         selected_month_name = st.selectbox(
             "Select Month",
             month_names,
-            index=6
+            index=6,
         )
 
     month_number = month_names.index(selected_month_name) + 1
@@ -147,7 +160,7 @@ def show_budget_calendar():
     with col3:
         selected_university = st.selectbox(
             "Select University",
-            list(DUMMY_BUDGETS.keys())
+            list(DUMMY_BUDGETS.keys()),
         )
 
     with col4:
@@ -155,7 +168,7 @@ def show_budget_calendar():
             "Check Budget On",
             value=date(selected_year, month_number, 15),
             min_value=date(selected_year, month_number, 1),
-            max_value=date(selected_year, month_number, max_day)
+            max_value=date(selected_year, month_number, max_day),
         )
 
     month_key = get_month_key(month_number, selected_year)
@@ -165,14 +178,14 @@ def show_budget_calendar():
         selected_university,
         month_number,
         selected_year,
-        selected_date
+        selected_date,
     )
 
     left_amount = month_budget - exhausted_amount
 
-    selected_status, selected_title, selected_cost = get_status_for_day(
+    selected_status, selected_title, selected_short_title, selected_cost = get_status_for_day(
         selected_date,
-        selected_university
+        selected_university,
     )
 
     if selected_status == "scheduled":
@@ -186,7 +199,7 @@ def show_budget_calendar():
 
     cal = calendar.Calendar(firstweekday=6).monthdayscalendar(
         selected_year,
-        month_number
+        month_number,
     )
 
     days_html = ""
@@ -200,18 +213,17 @@ def show_budget_calendar():
                 days_html += '<div class="empty-box"></div>'
             else:
                 current_date = date(selected_year, month_number, day)
-                status, title, cost = get_status_for_day(
+
+                status, title, short_title, cost = get_status_for_day(
                     current_date,
-                    selected_university
+                    selected_university,
                 )
 
-                selected_class = ""
-                if current_date == selected_date:
-                    selected_class = "selected-day"
+                selected_class = "selected-day" if current_date == selected_date else ""
 
                 chip = ""
                 if status != "available":
-                    chip = f'<div class="chip chip-{status}">{title}</div>'
+                    chip = f'<div class="chip chip-{status}">{short_title}</div>'
 
                 days_html += f'''
                 <div class="day-box {status} {selected_class}">
@@ -340,9 +352,9 @@ def show_budget_calendar():
             border-radius: 999px;
             font-size: 11px;
             font-weight: 900;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: normal;
+            overflow: visible;
+            line-height: 1.1;
             text-align: center;
         }}
 
