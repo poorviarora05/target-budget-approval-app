@@ -10,18 +10,30 @@ DUMMY_BUDGETS = {
         "Jul-26": 70000, "Aug-26": 110000, "Sep-26": 130000,
         "Oct-26": 95000, "Nov-26": 140000, "Dec-26": 160000,
         "Jan-27": 125000, "Feb-27": 115000, "Mar-27": 135000,
+        "Apr-27": 100000, "May-27": 120000, "Jun-27": 90000,
+        "Jul-27": 150000, "Aug-27": 110000, "Sep-27": 130000,
+        "Oct-27": 95000, "Nov-27": 140000, "Dec-27": 160000,
+        "Jan-28": 125000, "Feb-28": 115000, "Mar-28": 135000,
     },
     "Sharda University": {
         "Apr-26": 80000, "May-26": 95000, "Jun-26": 70000,
         "Jul-26": 110000, "Aug-26": 90000, "Sep-26": 100000,
         "Oct-26": 85000, "Nov-26": 95000, "Dec-26": 120000,
         "Jan-27": 90000, "Feb-27": 85000, "Mar-27": 100000,
+        "Apr-27": 80000, "May-27": 95000, "Jun-27": 70000,
+        "Jul-27": 110000, "Aug-27": 90000, "Sep-27": 100000,
+        "Oct-27": 85000, "Nov-27": 95000, "Dec-27": 120000,
+        "Jan-28": 90000, "Feb-28": 85000, "Mar-28": 100000,
     },
     "Galgotias University": {
         "Apr-26": 60000, "May-26": 75000, "Jun-26": 65000,
         "Jul-26": 90000, "Aug-26": 70000, "Sep-26": 85000,
         "Oct-26": 75000, "Nov-26": 80000, "Dec-26": 95000,
         "Jan-27": 70000, "Feb-27": 65000, "Mar-27": 80000,
+        "Apr-27": 60000, "May-27": 75000, "Jun-27": 65000,
+        "Jul-27": 90000, "Aug-27": 70000, "Sep-27": 85000,
+        "Oct-27": 75000, "Nov-27": 80000, "Dec-27": 95000,
+        "Jan-28": 70000, "Feb-28": 65000, "Mar-28": 80000,
     },
 }
 
@@ -89,17 +101,10 @@ def get_month_key(month_number, year):
     return datetime(year, month_number, 1).strftime("%b-%y")
 
 
-def get_financial_year_start(selected_year, selected_month_number):
-    if selected_month_number >= 4:
-        return selected_year
-    return selected_year - 1
-
-
 def get_training_for_day(day_date, university):
     for training in TRAININGS.get(university, []):
         if training["start"] <= day_date <= training["end"]:
             return training
-
     return None
 
 
@@ -118,8 +123,8 @@ def get_budget_usage(university, month_number, year, selected_date):
     return exhausted
 
 
-def get_yearly_budget_summary(university, fy_start_year, selected_date=None):
-    months = [
+def get_financial_year_months(fy_start_year):
+    return [
         f"Apr-{str(fy_start_year)[-2:]}",
         f"May-{str(fy_start_year)[-2:]}",
         f"Jun-{str(fy_start_year)[-2:]}",
@@ -134,36 +139,32 @@ def get_yearly_budget_summary(university, fy_start_year, selected_date=None):
         f"Mar-{str(fy_start_year + 1)[-2:]}",
     ]
 
-    total_budget = sum(
-        DUMMY_BUDGETS.get(university, {}).get(month, 0)
-        for month in months
+
+def get_yearly_budget_summary(university, fy_start_year):
+    fy_months = get_financial_year_months(fy_start_year)
+
+    total_available = sum(
+        DUMMY_BUDGETS.get(university, {}).get(month_key, 0)
+        for month_key in fy_months
     )
 
     fy_start_date = date(fy_start_year, 4, 1)
     fy_end_date = date(fy_start_year + 1, 3, 31)
 
-    total_used = 0
+    total_exhausted = 0
 
     for training in TRAININGS.get(university, []):
-        in_financial_year = fy_start_date <= training["start"] <= fy_end_date
+        if fy_start_date <= training["start"] <= fy_end_date:
+            total_exhausted += training.get("cost", 0)
 
-        if not in_financial_year:
-            continue
+    total_left = total_available - total_exhausted
 
-        if selected_date is None:
-            total_used += training.get("cost", 0)
-        else:
-            if training["end"] <= selected_date:
-                total_used += training.get("cost", 0)
-
-    total_left = total_budget - total_used
-
-    if total_budget > 0:
-        utilization = (total_used / total_budget) * 100
+    if total_available > 0:
+        utilization = (total_exhausted / total_available) * 100
     else:
         utilization = 0
 
-    return total_budget, total_used, total_left, utilization
+    return total_available, total_exhausted, total_left, utilization
 
 
 def show_budget_calendar():
@@ -218,15 +219,6 @@ def show_budget_calendar():
     )
 
     left_amount = month_budget - exhausted_amount
-
-    fy_start_year = get_financial_year_start(selected_year, month_number)
-    fy_label = f"{fy_start_year}-{str(fy_start_year + 1)[-2:]}"
-
-    yearly_budget, yearly_used, yearly_left, utilization = get_yearly_budget_summary(
-        selected_university,
-        fy_start_year,
-        selected_date,
-    )
 
     selected_training = get_training_for_day(selected_date, selected_university)
 
@@ -429,7 +421,7 @@ def show_budget_calendar():
 
         .bottom-layout {{
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 20px;
         }}
 
@@ -442,7 +434,7 @@ def show_budget_calendar():
         }}
 
         .side-heading {{
-            font-size: 23px;
+            font-size: 24px;
             font-weight: 900;
             margin-bottom: 18px;
         }}
@@ -452,7 +444,7 @@ def show_budget_calendar():
             align-items: center;
             gap: 12px;
             margin-bottom: 13px;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 800;
             color: #334155;
         }}
@@ -489,47 +481,23 @@ def show_budget_calendar():
         }}
 
         .budget {{
-            font-size: 28px;
+            font-size: 30px;
             font-weight: 900;
             color: #4F46E5;
             margin-bottom: 16px;
         }}
 
         .exhausted {{
-            font-size: 26px;
+            font-size: 28px;
             font-weight: 900;
             color: #DC2626;
             margin-bottom: 16px;
         }}
 
         .left {{
-            font-size: 26px;
+            font-size: 28px;
             font-weight: 900;
             color: #16A34A;
-            margin-bottom: 16px;
-        }}
-
-        .utilization {{
-            font-size: 26px;
-            font-weight: 900;
-            color: #EA580C;
-            margin-bottom: 8px;
-        }}
-
-        .progress-track {{
-            width: 100%;
-            height: 12px;
-            border-radius: 999px;
-            background: #E5E7EB;
-            overflow: hidden;
-            margin-top: 8px;
-        }}
-
-        .progress-fill {{
-            height: 100%;
-            width: {min(utilization, 100):.1f}%;
-            border-radius: 999px;
-            background: #4F46E5;
         }}
 
         .training-card {{
@@ -565,27 +533,6 @@ def show_budget_calendar():
             padding: 14px;
             color: #64748B;
             font-weight: 700;
-        }}
-
-        @media (max-width: 1100px) {{
-            .bottom-layout {{
-                grid-template-columns: repeat(2, 1fr);
-            }}
-        }}
-
-        @media (max-width: 700px) {{
-            .bottom-layout {{
-                grid-template-columns: 1fr;
-            }}
-
-            .day-box,
-            .empty-box {{
-                min-height: 105px;
-            }}
-
-            .event-name {{
-                font-size: 11px;
-            }}
         }}
     </style>
     </head>
@@ -638,26 +585,6 @@ def show_budget_calendar():
             </div>
 
             <div class="side-card">
-                <div class="side-heading">Yearly Summary {fy_label}</div>
-
-                <div class="label">Total Yearly Budget</div>
-                <div class="budget">₹{yearly_budget:,.0f}</div>
-
-                <div class="label">Used Budget</div>
-                <div class="exhausted">₹{yearly_used:,.0f}</div>
-
-                <div class="label">Left Budget</div>
-                <div class="left">₹{yearly_left:,.0f}</div>
-
-                <div class="label">Utilization</div>
-                <div class="utilization">{utilization:.1f}%</div>
-
-                <div class="progress-track">
-                    <div class="progress-fill"></div>
-                </div>
-            </div>
-
-            <div class="side-card">
                 <div class="side-heading">Trainings</div>
                 {training_cards}
             </div>
@@ -666,4 +593,34 @@ def show_budget_calendar():
     </html>
     '''
 
-    components.html(html, height=1350, scrolling=True)
+    components.html(html, height=1250, scrolling=True)
+
+    st.markdown("---")
+    st.subheader("📊 Yearly Budget Checker")
+
+    fy_col1, fy_col2 = st.columns(2)
+
+    with fy_col1:
+        selected_fy_start = st.selectbox(
+            "Select Financial Year",
+            [2026, 2027],
+            format_func=lambda y: f"{y}-{str(y + 1)[-2:]}",
+        )
+
+    with fy_col2:
+        yearly_university = st.selectbox(
+            "Select University for Yearly Budget",
+            list(DUMMY_BUDGETS.keys()),
+            key="yearly_budget_university",
+        )
+
+    yearly_available, yearly_exhausted, yearly_left, yearly_utilization = (
+        get_yearly_budget_summary(yearly_university, selected_fy_start)
+    )
+
+    y1, y2, y3, y4 = st.columns(4)
+
+    y1.metric("Total Available Budget", f"₹{yearly_available:,.0f}")
+    y2.metric("Total Exhausted Budget", f"₹{yearly_exhausted:,.0f}")
+    y3.metric("Total Left Budget", f"₹{yearly_left:,.0f}")
+    y4.metric("Utilization", f"{yearly_utilization:.1f}%")
