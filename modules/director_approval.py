@@ -109,9 +109,17 @@ def show_director_approval():
     other_total = safe_number(selected_request.get("other_total", 0))
     estimated_budget = safe_number(selected_request.get("estimated_budget", 0))
 
+    if total_available_budget == 0:
+        total_available_budget = safe_number(
+            selected_request.get("available_budget", 0)
+        )
+
+    if remaining_after_approval == 0 and total_available_budget > 0:
+        remaining_after_approval = total_available_budget - estimated_budget
+
     cost_table = pd.DataFrame({
         "Cost Component": [
-            "Total Available Budget from Approver",
+            "Total Available Budget",
             "Trainer Fee",
             "Stay Cost",
             "Travel Cost",
@@ -138,7 +146,11 @@ def show_director_approval():
 
     st.subheader("Partner Budget Decision")
 
-    default_available_budget = int(total_available_budget) if total_available_budget > 0 else 100000
+    default_available_budget = (
+        int(total_available_budget)
+        if total_available_budget > 0
+        else 100000
+    )
 
     available_budget = st.number_input(
         "Edit Total Available Budget",
@@ -206,8 +218,10 @@ def show_director_approval():
             requests_df["request_id"] == request_id
         ].index[0]
 
+        requests_df.loc[index, "total_available_budget"] = total_available_budget
         requests_df.loc[index, "available_budget"] = available_budget
         requests_df.loc[index, "partner_final_available_budget"] = available_budget
+        requests_df.loc[index, "remaining_after_approval"] = remaining_after_approval
         requests_df.loc[index, "remaining_budget"] = remaining_budget
         requests_df.loc[index, "budget_health_score"] = budget_health_score
         requests_df.loc[index, "risk_level"] = risk_level
