@@ -135,14 +135,14 @@ def show_budget_calendar():
     max_day = calendar.monthrange(year, month_number)[1]
 
     with col3:
-        selected_day = st.number_input(
-            "Select Date",
-            min_value=1,
-            max_value=max_day,
-            value=1
-        )
+        selected_date = st.date_input(
+    "Select Date",
+    value=datetime(year, month_number, 1).date(),
+    min_value=datetime(year, month_number, 1).date(),
+    max_value=datetime(year, month_number, max_day).date()
+)
 
-    selected_date = datetime(year, month_number, int(selected_day)).date()
+selected_day = selected_date.day
     budget = DUMMY_BUDGETS[selected_university][selected_month]
 
     st.markdown("---")
