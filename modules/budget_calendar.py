@@ -4,31 +4,61 @@ from datetime import datetime
 
 DUMMY_BUDGETS = {
     "Chandigarh University": {
-        "Apr-26": 100000, "May-26": 120000, "Jun-26": 90000,
-        "Jul-26": 150000, "Aug-26": 110000, "Sep-26": 130000,
-        "Oct-26": 95000, "Nov-26": 140000, "Dec-26": 160000,
-        "Jan-27": 125000, "Feb-27": 115000, "Mar-27": 135000
+        "Apr-26": 100000,
+        "May-26": 120000,
+        "Jun-26": 90000,
+        "Jul-26": 150000,
+        "Aug-26": 110000,
+        "Sep-26": 130000,
+        "Oct-26": 95000,
+        "Nov-26": 140000,
+        "Dec-26": 160000,
+        "Jan-27": 125000,
+        "Feb-27": 115000,
+        "Mar-27": 135000
     },
     "Sharda University": {
-        "Apr-26": 80000, "May-26": 95000, "Jun-26": 70000,
-        "Jul-26": 110000, "Aug-26": 90000, "Sep-26": 100000,
-        "Oct-26": 85000, "Nov-26": 95000, "Dec-26": 120000,
-        "Jan-27": 90000, "Feb-27": 85000, "Mar-27": 100000
+        "Apr-26": 80000,
+        "May-26": 95000,
+        "Jun-26": 70000,
+        "Jul-26": 110000,
+        "Aug-26": 90000,
+        "Sep-26": 100000,
+        "Oct-26": 85000,
+        "Nov-26": 95000,
+        "Dec-26": 120000,
+        "Jan-27": 90000,
+        "Feb-27": 85000,
+        "Mar-27": 100000
     },
     "Galgotias University": {
-        "Apr-26": 60000, "May-26": 75000, "Jun-26": 65000,
-        "Jul-26": 90000, "Aug-26": 70000, "Sep-26": 85000,
-        "Oct-26": 75000, "Nov-26": 80000, "Dec-26": 95000,
-        "Jan-27": 70000, "Feb-27": 65000, "Mar-27": 80000
+        "Apr-26": 60000,
+        "May-26": 75000,
+        "Jun-26": 65000,
+        "Jul-26": 90000,
+        "Aug-26": 70000,
+        "Sep-26": 85000,
+        "Oct-26": 75000,
+        "Nov-26": 80000,
+        "Dec-26": 95000,
+        "Jan-27": 70000,
+        "Feb-27": 65000,
+        "Mar-27": 80000
     }
 }
 
 
 def show_budget_calendar():
 
-    st.header("Budget Calendar")
+    st.header("Clickable Budget Calendar")
 
-    col1, col2, col3 = st.columns(3)
+    months = [
+        "Apr-26", "May-26", "Jun-26", "Jul-26",
+        "Aug-26", "Sep-26", "Oct-26", "Nov-26",
+        "Dec-26", "Jan-27", "Feb-27", "Mar-27"
+    ]
+
+    col1, col2 = st.columns(2)
 
     with col1:
         selected_university = st.selectbox(
@@ -39,7 +69,7 @@ def show_budget_calendar():
     with col2:
         selected_month = st.selectbox(
             "Select Month",
-            list(DUMMY_BUDGETS[selected_university].keys())
+            months
         )
 
     month_abbr, year_suffix = selected_month.split("-")
@@ -48,51 +78,53 @@ def show_budget_calendar():
 
     budget = DUMMY_BUDGETS[selected_university][selected_month]
 
+    if "selected_budget_date" not in st.session_state:
+        st.session_state.selected_budget_date = f"{year}-{month_number:02d}-01"
+
     calendar_options = {
         "initialView": "dayGridMonth",
         "initialDate": f"{year}-{month_number:02d}-01",
         "selectable": True,
+        "editable": False,
         "height": 650,
         "headerToolbar": {
             "left": "prev,next today",
             "center": "title",
             "right": "dayGridMonth"
-        },
+        }
     }
 
-    calendar_events = []
+    calendar_events = [
+        {
+            "title": "Selected",
+            "start": st.session_state.selected_budget_date,
+            "backgroundColor": "#2563EB",
+            "borderColor": "#2563EB",
+            "textColor": "white"
+        }
+    ]
 
-    clicked = calendar(
+    calendar_response = calendar(
         events=calendar_events,
         options=calendar_options,
-        key=f"calendar_{selected_university}_{selected_month}"
+        key=f"budget_calendar_{selected_university}_{selected_month}"
     )
 
-    selected_date = None
+    if calendar_response:
+        if "dateClick" in calendar_response:
+            clicked_date = calendar_response["dateClick"]["date"]
+            st.session_state.selected_budget_date = clicked_date
 
-    if clicked and "dateClick" in clicked:
-        selected_date = clicked["dateClick"]["date"]
-
-    with col3:
-        if selected_date:
-            st.text_input(
-                "Selected Date",
-                selected_date,
-                disabled=True
-            )
-        else:
-            st.text_input(
-                "Selected Date",
-                "Click a date in calendar",
-                disabled=True
-            )
+    selected_date = st.session_state.selected_budget_date
 
     st.markdown("---")
 
-    if selected_date:
-        st.success(f"Selected Date: {selected_date}")
-
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
 
     col1.metric("University", selected_university)
-    col2.metric("Budget", f"₹{budget:,.0f}")
+    col2.metric("Selected Date", selected_date)
+    col3.metric("Budget", f"₹{budget:,.0f}")
+
+    st.success(
+        f"Budget for {selected_university} in {selected_month}: ₹{budget:,.0f}"
+    )
