@@ -29,7 +29,7 @@ def show_director_approval():
 
     if not pending_requests.empty:
 
-        @st.dialog("🔔 Partner Approval Notification")
+        @st.dialog("Partner Approval Notification")
         def partner_notification():
             st.write(
                 f"{len(pending_requests)} request(s) pending for Partner approval."
@@ -86,9 +86,24 @@ def show_director_approval():
 
     st.subheader("Cost Estimate Received from Approver")
 
+    total_available_budget = safe_number(
+        selected_request.get("total_available_budget", 0)
+    )
+
+    remaining_after_approval = safe_number(
+        selected_request.get("remaining_after_approval", 0)
+    )
+
     trainer_cost = safe_number(selected_request.get("trainer_cost", 0))
     stay_total = safe_number(selected_request.get("stay_total", 0))
-    travel_total = safe_number(selected_request.get("travel_total", 0))
+
+    travel_total = safe_number(
+        selected_request.get(
+            "approver_total_travel_cost",
+            selected_request.get("travel_total", 0)
+        )
+    )
+
     food_total = safe_number(selected_request.get("food_total", 0))
     material_total = safe_number(selected_request.get("material_total", 0))
     other_total = safe_number(selected_request.get("other_total", 0))
@@ -96,22 +111,26 @@ def show_director_approval():
 
     cost_table = pd.DataFrame({
         "Cost Component": [
+            "Total Available Budget from Approver",
             "Trainer Fee",
             "Stay Cost",
             "Travel Cost",
             "Food Cost",
             "Training Material Cost",
             "Other Cost",
-            "Total Estimated Budget"
+            "Total Estimated Budget",
+            "Balance After Approver Estimate"
         ],
         "Estimated Amount": [
+            f"₹{total_available_budget:,.0f}",
             f"₹{trainer_cost:,.0f}",
             f"₹{stay_total:,.0f}",
             f"₹{travel_total:,.0f}",
             f"₹{food_total:,.0f}",
             f"₹{material_total:,.0f}",
             f"₹{other_total:,.0f}",
-            f"₹{estimated_budget:,.0f}"
+            f"₹{estimated_budget:,.0f}",
+            f"₹{remaining_after_approval:,.0f}"
         ]
     })
 
@@ -119,10 +138,13 @@ def show_director_approval():
 
     st.subheader("Partner Budget Decision")
 
+    default_available_budget = int(total_available_budget) if total_available_budget > 0 else 100000
+
     available_budget = st.number_input(
-        "Available Budget for this University",
+        "Edit Total Available Budget",
         min_value=0,
-        value=100000
+        value=default_available_budget,
+        step=1000
     )
 
     remaining_budget = available_budget - estimated_budget
@@ -139,7 +161,7 @@ def show_director_approval():
 
     col1, col2, col3 = st.columns(3)
 
-    col1.metric("Available Budget", f"₹{available_budget:,.0f}")
+    col1.metric("Final Available Budget", f"₹{available_budget:,.0f}")
     col2.metric("Estimated Cost", f"₹{estimated_budget:,.0f}")
     col3.metric("Remaining / Loss", f"₹{remaining_budget:,.0f}")
 
@@ -185,6 +207,7 @@ def show_director_approval():
         ].index[0]
 
         requests_df.loc[index, "available_budget"] = available_budget
+        requests_df.loc[index, "partner_final_available_budget"] = available_budget
         requests_df.loc[index, "remaining_budget"] = remaining_budget
         requests_df.loc[index, "budget_health_score"] = budget_health_score
         requests_df.loc[index, "risk_level"] = risk_level
