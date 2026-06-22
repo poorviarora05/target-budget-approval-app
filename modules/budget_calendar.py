@@ -89,16 +89,12 @@ def get_month_key(month_number, year):
     return datetime(year, month_number, 1).strftime("%b-%y")
 
 
-def get_status_for_day(day_date, university):
+def get_training_for_day(day_date, university):
     for training in TRAININGS.get(university, []):
         if training["start"] <= day_date <= training["end"]:
-            return (
-                training["status"],
-                training["title"],
-                training.get("cost", 0),
-            )
+            return training
 
-    return "available", "", 0
+    return None
 
 
 def get_budget_usage(university, month_number, year, selected_date):
@@ -169,10 +165,16 @@ def show_budget_calendar():
 
     left_amount = month_budget - exhausted_amount
 
-    selected_status, selected_title, selected_cost = get_status_for_day(
-        selected_date,
-        selected_university,
-    )
+    selected_training = get_training_for_day(selected_date, selected_university)
+
+    if selected_training:
+        selected_status = selected_training["status"]
+        selected_title = selected_training["title"]
+        selected_cost = selected_training.get("cost", 0)
+    else:
+        selected_status = "available"
+        selected_title = ""
+        selected_cost = 0
 
     if selected_status == "scheduled":
         selected_status_text = "Training Scheduled"
@@ -199,19 +201,20 @@ def show_budget_calendar():
                 days_html += '<div class="empty-box"></div>'
             else:
                 current_date = date(selected_year, month_number, day)
+                training = get_training_for_day(current_date, selected_university)
 
-                status, title, cost = get_status_for_day(
-                    current_date,
-                    selected_university,
-                )
+                if training:
+                    status = training["status"]
+                    title = training["title"]
+                else:
+                    status = "available"
+                    title = ""
 
                 selected_class = "selected-day" if current_date == selected_date else ""
 
                 event_html = ""
-                if status != "available":
-                    event_html = f'''
-                    <div class="event-name">{title}</div>
-                    '''
+                if title:
+                    event_html = f'<div class="event-name">{title}</div>'
 
                 days_html += f'''
                 <div class="day-box {status} {selected_class}">
@@ -248,11 +251,15 @@ def show_budget_calendar():
     selected_event_line = ""
     if selected_title:
         selected_event_line = f'''
-        <div class="label">Event</div>
-        <div class="normal-text">{selected_title}</div>
+        <div class="info-item">
+            <div class="label">Event</div>
+            <div class="value">{selected_title}</div>
+        </div>
 
-        <div class="label">Event Cost</div>
-        <div class="normal-text">₹{selected_cost:,.0f}</div>
+        <div class="info-item">
+            <div class="label">Event Cost</div>
+            <div class="value">₹{selected_cost:,.0f}</div>
+        </div>
         '''
 
     html = f'''
@@ -268,24 +275,13 @@ def show_budget_calendar():
             color: #0F172A;
         }}
 
-        .layout {{
-            display: grid;
-            grid-template-columns: 2.4fr 1fr;
-            gap: 24px;
-            width: 100%;
-            box-sizing: border-box;
-        }}
-
-        .calendar-card,
-        .side-card {{
+        .calendar-card {{
             background: #ffffff;
             border: 1px solid #E5E7EB;
             border-radius: 24px;
             box-shadow: 0 10px 26px rgba(15,23,42,0.06);
-        }}
-
-        .calendar-card {{
             padding: 24px;
+            margin-bottom: 24px;
         }}
 
         .month-title {{
@@ -298,12 +294,12 @@ def show_budget_calendar():
         .calendar-grid {{
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 10px;
+            gap: 12px;
         }}
 
         .weekday {{
             text-align: center;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 900;
             color: #475569;
             padding: 8px 0;
@@ -311,15 +307,15 @@ def show_budget_calendar():
 
         .day-box,
         .empty-box {{
-            min-height: 118px;
-            border-radius: 15px;
+            min-height: 120px;
+            border-radius: 16px;
             box-sizing: border-box;
         }}
 
         .day-box {{
             border: 1px solid #E5E7EB;
             background: #ffffff;
-            padding: 10px;
+            padding: 12px;
             overflow: visible;
         }}
 
@@ -329,14 +325,14 @@ def show_budget_calendar():
         }}
 
         .day-number {{
-            font-size: 22px;
+            font-size: 24px;
             font-weight: 900;
             line-height: 1;
             margin-bottom: 12px;
         }}
 
         .event-name {{
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 900;
             color: #0F172A;
             line-height: 1.25;
@@ -344,9 +340,9 @@ def show_budget_calendar():
             word-break: normal;
             overflow-wrap: break-word;
             white-space: normal;
-            padding: 6px 7px;
+            padding: 8px;
             border-radius: 12px;
-            background: rgba(255,255,255,0.55);
+            background: rgba(255,255,255,0.65);
         }}
 
         .scheduled {{
@@ -369,22 +365,31 @@ def show_budget_calendar():
             box-shadow: 0 0 0 4px rgba(37,99,235,0.15);
         }}
 
+        .bottom-layout {{
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }}
+
         .side-card {{
-            padding: 24px;
-            margin-bottom: 20px;
+            background: #ffffff;
+            border: 1px solid #E5E7EB;
+            border-radius: 22px;
+            padding: 22px;
+            box-shadow: 0 10px 26px rgba(15,23,42,0.06);
         }}
 
         .side-heading {{
-            font-size: 26px;
+            font-size: 24px;
             font-weight: 900;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }}
 
         .legend-row {{
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 14px;
+            margin-bottom: 13px;
             font-size: 15px;
             font-weight: 800;
             color: #334155;
@@ -403,65 +408,54 @@ def show_budget_calendar():
         .green {{ background: #86EFAC; }}
         .blue {{ background: #2563EB; }}
 
+        .info-item {{
+            margin-bottom: 16px;
+        }}
+
         .label {{
-            font-size: 14px;
+            font-size: 13px;
             color: #64748B;
             font-weight: 900;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
         }}
 
-        .normal-text {{
+        .value {{
             font-size: 16px;
-            font-weight: 800;
-            margin-bottom: 18px;
-            color: #0F172A;
-        }}
-
-        .university {{
-            font-size: 20px;
             font-weight: 900;
-            margin-bottom: 20px;
+            color: #0F172A;
             line-height: 1.3;
         }}
 
         .budget {{
-            font-size: 32px;
+            font-size: 30px;
             font-weight: 900;
             color: #4F46E5;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
         }}
 
         .exhausted {{
-            font-size: 30px;
+            font-size: 28px;
             font-weight: 900;
             color: #DC2626;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
         }}
 
         .left {{
-            font-size: 30px;
+            font-size: 28px;
             font-weight: 900;
             color: #16A34A;
-            margin-bottom: 18px;
-        }}
-
-        .training-heading {{
-            font-size: 25px;
-            font-weight: 900;
-            margin: 10px 0 14px 0;
         }}
 
         .training-card {{
-            background: white;
+            background: #F8FAFC;
             border: 1px solid #E5E7EB;
-            border-radius: 18px;
-            padding: 16px;
-            margin-bottom: 14px;
-            box-shadow: 0 8px 20px rgba(15,23,42,0.05);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 12px;
         }}
 
         .training-title {{
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 900;
         }}
 
@@ -472,7 +466,7 @@ def show_budget_calendar():
         }}
 
         .training-cost {{
-            margin-top: 8px;
+            margin-top: 7px;
             font-size: 14px;
             font-weight: 900;
             color: #4F46E5;
@@ -486,50 +480,73 @@ def show_budget_calendar():
             color: #64748B;
             font-weight: 700;
         }}
+
+        @media (max-width: 900px) {{
+            .bottom-layout {{
+                grid-template-columns: 1fr;
+            }}
+
+            .day-box,
+            .empty-box {{
+                min-height: 105px;
+            }}
+
+            .event-name {{
+                font-size: 11px;
+            }}
+        }}
     </style>
     </head>
 
     <body>
-        <div class="layout">
-            <div class="calendar-card">
-                <div class="month-title">{selected_month_name} {selected_year}</div>
-                <div class="calendar-grid">
-                    {days_html}
-                </div>
+        <div class="calendar-card">
+            <div class="month-title">{selected_month_name} {selected_year}</div>
+            <div class="calendar-grid">
+                {days_html}
+            </div>
+        </div>
+
+        <div class="bottom-layout">
+            <div class="side-card">
+                <div class="side-heading">Legend</div>
+                <div class="legend-row"><span class="dot pink"></span>Training Scheduled</div>
+                <div class="legend-row"><span class="dot yellow"></span>Blocked / Unavailable</div>
+                <div class="legend-row"><span class="dot green"></span>Upcoming Training</div>
+                <div class="legend-row"><span class="dot blue"></span>Selected Date</div>
             </div>
 
-            <div>
-                <div class="side-card">
-                    <div class="side-heading">Legend</div>
-                    <div class="legend-row"><span class="dot pink"></span>Training Scheduled</div>
-                    <div class="legend-row"><span class="dot yellow"></span>Blocked / Unavailable</div>
-                    <div class="legend-row"><span class="dot green"></span>Upcoming Training</div>
-                    <div class="legend-row"><span class="dot blue"></span>Selected Date</div>
-                </div>
+            <div class="side-card">
+                <div class="side-heading">Budget Summary</div>
 
-                <div class="side-card">
+                <div class="info-item">
                     <div class="label">Check Budget On</div>
-                    <div class="normal-text">{selected_date.strftime("%d %B %Y")}</div>
-
-                    <div class="label">Date Status</div>
-                    <div class="normal-text">{selected_status_text}</div>
-
-                    {selected_event_line}
-
-                    <div class="label">University</div>
-                    <div class="university">{selected_university}</div>
-
-                    <div class="label">Month Budget</div>
-                    <div class="budget">₹{month_budget:,.0f}</div>
-
-                    <div class="label">Exhausted Amount</div>
-                    <div class="exhausted">₹{exhausted_amount:,.0f}</div>
-
-                    <div class="label">Left Amount</div>
-                    <div class="left">₹{left_amount:,.0f}</div>
+                    <div class="value">{selected_date.strftime("%d %B %Y")}</div>
                 </div>
 
-                <div class="training-heading">Trainings</div>
+                <div class="info-item">
+                    <div class="label">Date Status</div>
+                    <div class="value">{selected_status_text}</div>
+                </div>
+
+                {selected_event_line}
+
+                <div class="info-item">
+                    <div class="label">University</div>
+                    <div class="value">{selected_university}</div>
+                </div>
+
+                <div class="label">Month Budget</div>
+                <div class="budget">₹{month_budget:,.0f}</div>
+
+                <div class="label">Exhausted Amount</div>
+                <div class="exhausted">₹{exhausted_amount:,.0f}</div>
+
+                <div class="label">Left Amount</div>
+                <div class="left">₹{left_amount:,.0f}</div>
+            </div>
+
+            <div class="side-card">
+                <div class="side-heading">Trainings</div>
                 {training_cards}
             </div>
         </div>
@@ -537,4 +554,4 @@ def show_budget_calendar():
     </html>
     '''
 
-    components.html(html, height=1050, scrolling=False)
+    components.html(html, height=1250, scrolling=True)
