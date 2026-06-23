@@ -46,6 +46,7 @@ TRAININGS = {
     "Chandigarh University": [
         {
             "title": "AI/ML Training",
+            "trainer": "Rahul Sharma",
             "start": date(2026, 7, 3),
             "end": date(2026, 7, 7),
             "status": "scheduled",
@@ -53,6 +54,7 @@ TRAININGS = {
         },
         {
             "title": "University Event",
+            "trainer": "Not Assigned",
             "start": date(2026, 7, 10),
             "end": date(2026, 7, 11),
             "status": "blocked",
@@ -60,6 +62,7 @@ TRAININGS = {
         },
         {
             "title": "Data Science Bootcamp",
+            "trainer": "Amit Verma",
             "start": date(2026, 7, 18),
             "end": date(2026, 7, 20),
             "status": "upcoming",
@@ -69,13 +72,15 @@ TRAININGS = {
     "Sharda University": [
         {
             "title": "Generative AI Workshop",
-            "start": date(2026, 7, 3),
-            "end": date(2026, 7, 6),
+            "trainer": "Rahul Sharma",
+            "start": date(2026, 7, 5),
+            "end": date(2026, 7, 8),
             "status": "scheduled",
             "cost": 45000,
         },
         {
             "title": "Cloud Computing Session",
+            "trainer": "Neha Gupta",
             "start": date(2026, 7, 15),
             "end": date(2026, 7, 17),
             "status": "upcoming",
@@ -85,6 +90,7 @@ TRAININGS = {
     "Galgotias University": [
         {
             "title": "Cyber Security Program",
+            "trainer": "Karan Mehta",
             "start": date(2026, 7, 11),
             "end": date(2026, 7, 13),
             "status": "blocked",
@@ -92,6 +98,7 @@ TRAININGS = {
         },
         {
             "title": "Python Training",
+            "trainer": "Priya Singh",
             "start": date(2026, 7, 22),
             "end": date(2026, 7, 24),
             "status": "upcoming",
@@ -166,18 +173,24 @@ def get_approved_trainings_from_requests():
         if not title:
             title = "Approved Training"
 
+        trainer = str(row.get("trainer_name", "Not Assigned")).strip()
+
+        if not trainer:
+            trainer = "Not Assigned"
+
         cost = safe_number(
             row.get(
-                "partner_final_available_budget",
+                "estimated_budget",
                 row.get(
-                    "estimated_budget",
-                    row.get("total_expected_budget", 0)
+                    "total_expected_budget",
+                    row.get("partner_final_available_budget", 0)
                 )
             )
         )
 
         training = {
             "title": title.title(),
+            "trainer": trainer.title(),
             "start": start_date,
             "end": end_date,
             "status": "scheduled",
@@ -207,6 +220,60 @@ def get_all_trainings():
         all_trainings[university].extend(trainings)
 
     return all_trainings
+
+
+def flatten_trainings(all_trainings):
+    rows = []
+
+    for university, trainings in all_trainings.items():
+        for training in trainings:
+            rows.append({
+                "University": university,
+                "Trainer": training.get("trainer", "Not Assigned"),
+                "Training": training.get("title", ""),
+                "Start Date": training.get("start"),
+                "End Date": training.get("end"),
+                "Budget": training.get("cost", 0),
+                "Status": training.get("status", "").title(),
+            })
+
+    return rows
+
+
+def find_conflicts(training_rows):
+    conflicts = []
+
+    valid_rows = [
+        row for row in training_rows
+        if row["Trainer"] and row["Trainer"] != "Not Assigned"
+    ]
+
+    for i in range(len(valid_rows)):
+        for j in range(i + 1, len(valid_rows)):
+            first = valid_rows[i]
+            second = valid_rows[j]
+
+            same_trainer = first["Trainer"] == second["Trainer"]
+            date_overlap = (
+                first["Start Date"] <= second["End Date"]
+                and second["Start Date"] <= first["End Date"]
+            )
+
+            different_university = first["University"] != second["University"]
+
+            if same_trainer and date_overlap and different_university:
+                conflicts.append({
+                    "Trainer": first["Trainer"],
+                    "First Training": first["Training"],
+                    "First University": first["University"],
+                    "First Dates": f"{first['Start Date'].strftime('%d-%b')} to {first['End Date'].strftime('%d-%b')}",
+                    "Second Training": second["Training"],
+                    "Second University": second["University"],
+                    "Second Dates": f"{second['Start Date'].strftime('%d-%b')} to {second['End Date'].strftime('%d-%b')}",
+                    "Issue": "Trainer schedule conflict detected",
+                })
+
+    return conflicts
 
 
 def get_training_for_day(day_date, university):
@@ -280,6 +347,85 @@ def get_yearly_budget_summary(university, fy_start_year):
     return total_available, total_exhausted, total_left, utilization
 
 
+def show_training_operations_overview(all_trainings):
+    st.subheader("Training Operations Overview")
+
+    training_rows = flatten_trainings(all_trainings)
+
+    if not training_rows:
+        st.info("No trainings available for overview.")
+        return
+
+    overview_df = pd.DataFrame(training_rows)
+
+    min_date = overview_df["Start Date"].min()
+    default_month = min_date.month if pd.notna(min_date) else 7
+
+    f1, f2, f3, f4 = st.columns(4)
+
+    university_options = ["All Universities"] + sorted(overview_df["University"].dropna().unique().tolist())
+    trainer_options = ["All Trainers"] + sorted(overview_df["Trainer"].dropna().unique().tolist())
+    status_options = ["All Status"] + sorted(overview_df["Status"].dropna().unique().tolist())
+
+    month_names = [
+        "All Months", "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ]
+
+    with f1:
+        filter_university = st.selectbox("Filter by University", university_options)
+
+    with f2:
+        filter_trainer = st.selectbox("Filter by Trainer", trainer_options)
+
+    with f3:
+        filter_month = st.selectbox("Filter by Month", month_names, index=default_month)
+
+    with f4:
+        filter_status = st.selectbox("Filter by Status", status_options)
+
+    filtered_df = overview_df.copy()
+
+    if filter_university != "All Universities":
+        filtered_df = filtered_df[filtered_df["University"] == filter_university]
+
+    if filter_trainer != "All Trainers":
+        filtered_df = filtered_df[filtered_df["Trainer"] == filter_trainer]
+
+    if filter_month != "All Months":
+        month_number = month_names.index(filter_month)
+        filtered_df = filtered_df[filtered_df["Start Date"].apply(lambda x: x.month == month_number)]
+
+    if filter_status != "All Status":
+        filtered_df = filtered_df[filtered_df["Status"] == filter_status]
+
+    display_df = filtered_df.copy()
+    display_df["Date Range"] = display_df.apply(
+        lambda row: f"{row['Start Date'].strftime('%d %b %Y')} - {row['End Date'].strftime('%d %b %Y')}",
+        axis=1
+    )
+    display_df["Budget"] = display_df["Budget"].apply(lambda x: f"₹{x:,.0f}")
+
+    display_df = display_df[
+        ["University", "Trainer", "Training", "Date Range", "Budget", "Status"]
+    ]
+
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+    conflicts = find_conflicts(training_rows)
+
+    st.subheader("Conflict Detection")
+
+    if conflicts:
+        conflict_df = pd.DataFrame(conflicts)
+        st.error("Potential trainer schedule conflict detected.")
+        st.dataframe(conflict_df, use_container_width=True, hide_index=True)
+    else:
+        st.success("No trainer schedule conflicts detected.")
+
+    st.markdown("---")
+
+
 def show_budget_calendar():
     st.markdown("## Budget & Training Calendar")
     st.caption("View training schedules, blocked dates, monthly budgets and yearly utilization")
@@ -290,6 +436,8 @@ def show_budget_calendar():
     ]
 
     all_trainings = get_all_trainings()
+    show_training_operations_overview(all_trainings)
+
     university_options = sorted(
         set(list(DUMMY_BUDGETS.keys()) + list(all_trainings.keys()))
     )
@@ -413,6 +561,7 @@ def show_budget_calendar():
                 <div class="training-meta">
                     {training["start"].strftime("%d %b %Y")} - {training["end"].strftime("%d %b %Y")}
                 </div>
+                <div class="training-meta">Trainer: {training.get("trainer", "Not Assigned")}</div>
                 <div class="training-meta">Status: {training["status"].title()}</div>
                 <div class="training-cost">Cost: ₹{training.get("cost", 0):,.0f}</div>
             </div>
