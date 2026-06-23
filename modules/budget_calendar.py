@@ -2,6 +2,10 @@ import streamlit as st
 import calendar
 from datetime import datetime, date
 import streamlit.components.v1 as components
+import pandas as pd
+
+
+REQUESTS_FILE = "requests.csv"
 
 
 DUMMY_BUDGETS = {
@@ -97,21 +101,129 @@ TRAININGS = {
 }
 
 
+def safe_number(value):
+    try:
+        if pd.isna(value):
+            return 0
+        return float(value)
+    except:
+        return 0
+
+
+def format_university_name(value):
+    text = str(value).strip()
+
+    if not text:
+        return ""
+
+    lower_text = text.lower()
+
+    if "chandigarh" in lower_text:
+        return "Chandigarh University"
+
+    if "sharda" in lower_text:
+        return "Sharda University"
+
+    if "galgotias" in lower_text:
+        return "Galgotias University"
+
+    return text.title()
+
+
 def get_month_key(month_number, year):
     return datetime(year, month_number, 1).strftime("%b-%y")
 
 
+def get_approved_trainings_from_requests():
+    try:
+        requests_df = pd.read_csv(REQUESTS_FILE)
+    except:
+        return {}
+
+    if "request_status" not in requests_df.columns:
+        return {}
+
+    approved_requests = requests_df[
+        requests_df["request_status"].isin(["Approved", "Director Approved"])
+    ]
+
+    dynamic_trainings = {}
+
+    for _, row in approved_requests.iterrows():
+        university = format_university_name(row.get("college_name", ""))
+
+        if not university:
+            continue
+
+        try:
+            start_date = pd.to_datetime(row.get("start_date")).date()
+            end_date = pd.to_datetime(row.get("end_date")).date()
+        except:
+            continue
+
+        title = str(row.get("training_topic", "Approved Training")).strip()
+
+        if not title:
+            title = "Approved Training"
+
+        cost = safe_number(
+            row.get(
+                "partner_final_available_budget",
+                row.get(
+                    "estimated_budget",
+                    row.get("total_expected_budget", 0)
+                )
+            )
+        )
+
+        training = {
+            "title": title.title(),
+            "start": start_date,
+            "end": end_date,
+            "status": "scheduled",
+            "cost": cost,
+        }
+
+        if university not in dynamic_trainings:
+            dynamic_trainings[university] = []
+
+        dynamic_trainings[university].append(training)
+
+    return dynamic_trainings
+
+
+def get_all_trainings():
+    all_trainings = {}
+
+    for university, trainings in TRAININGS.items():
+        all_trainings[university] = trainings.copy()
+
+    approved_trainings = get_approved_trainings_from_requests()
+
+    for university, trainings in approved_trainings.items():
+        if university not in all_trainings:
+            all_trainings[university] = []
+
+        all_trainings[university].extend(trainings)
+
+    return all_trainings
+
+
 def get_training_for_day(day_date, university):
-    for training in TRAININGS.get(university, []):
+    all_trainings = get_all_trainings()
+
+    for training in all_trainings.get(university, []):
         if training["start"] <= day_date <= training["end"]:
             return training
+
     return None
 
 
 def get_budget_usage(university, month_number, year, selected_date):
     exhausted = 0
+    all_trainings = get_all_trainings()
 
-    for training in TRAININGS.get(university, []):
+    for training in all_trainings.get(university, []):
         same_month = (
             training["start"].month == month_number
             and training["start"].year == year
@@ -152,8 +264,9 @@ def get_yearly_budget_summary(university, fy_start_year):
     fy_end_date = date(fy_start_year + 1, 3, 31)
 
     total_exhausted = 0
+    all_trainings = get_all_trainings()
 
-    for training in TRAININGS.get(university, []):
+    for training in all_trainings.get(university, []):
         if fy_start_date <= training["start"] <= fy_end_date:
             total_exhausted += training.get("cost", 0)
 
@@ -176,6 +289,11 @@ def show_budget_calendar():
         "July", "August", "September", "October", "November", "December",
     ]
 
+    all_trainings = get_all_trainings()
+    university_options = sorted(
+        set(list(DUMMY_BUDGETS.keys()) + list(all_trainings.keys()))
+    )
+
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -197,7 +315,7 @@ def show_budget_calendar():
     with col3:
         selected_university = st.selectbox(
             "Select University",
-            list(DUMMY_BUDGETS.keys()),
+            university_options,
         )
 
     with col4:
@@ -281,7 +399,7 @@ def show_budget_calendar():
     training_cards = ""
     found = False
 
-    for training in TRAININGS.get(selected_university, []):
+    for training in all_trainings.get(selected_university, []):
         same_month = (
             training["start"].month == month_number
             and training["start"].year == selected_year
@@ -610,7 +728,7 @@ def show_budget_calendar():
     with fy_col2:
         yearly_university = st.selectbox(
             "Select University for Yearly Budget",
-            list(DUMMY_BUDGETS.keys()),
+            university_options,
             key="yearly_budget_university",
         )
 
