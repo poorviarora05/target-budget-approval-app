@@ -13,6 +13,12 @@ def safe_number(value):
         return 0
 
 
+def clean_text(value):
+    if pd.isna(value):
+        return ""
+    return str(value).strip().title()
+
+
 def get_budget_values(selected_request):
     total_available_budget = safe_number(
         selected_request.get("total_available_budget", 0)
@@ -91,7 +97,7 @@ def show_director_approval():
 
     st.subheader("Pending Requests")
 
-    h1, h2, h3, h4, h5, h6 = st.columns([0.9, 1.1, 2, 2, 1.5, 1.5])
+    h1, h2, h3, h4, h5, h6 = st.columns([0.7, 1.2, 2.3, 2.3, 1.5, 1.5])
     h1.write("**Select**")
     h2.write("**Request ID**")
     h3.write("**University**")
@@ -105,22 +111,23 @@ def show_director_approval():
         request_id = row.get("request_id", "")
         values = get_budget_values(row)
 
-        c1, c2, c3, c4, c5, c6 = st.columns([0.9, 1.1, 2, 2, 1.5, 1.5])
+        c1, c2, c3, c4, c5, c6 = st.columns([0.7, 1.2, 2.3, 2.3, 1.5, 1.5])
 
         with c1:
             selected = st.checkbox(
-                "Select",
-                key=f"partner_select_{request_id}"
+                "",
+                key=f"partner_select_{request_id}",
+                label_visibility="collapsed"
             )
 
         with c2:
             st.write(f"**{request_id}**")
 
         with c3:
-            st.write(row.get("college_name", ""))
+            st.write(clean_text(row.get("college_name", "")))
 
         with c4:
-            st.write(row.get("training_topic", ""))
+            st.write(clean_text(row.get("training_topic", "")))
 
         with c5:
             st.write(f"₹{values['estimated_budget']:,.0f}")
@@ -164,9 +171,9 @@ def show_director_approval():
                     selected_request.get("request_date", ""),
                     selected_request.get("start_date", ""),
                     selected_request.get("end_date", ""),
-                    selected_request.get("college_name", ""),
-                    selected_request.get("training_topic", ""),
-                    selected_request.get("trainer_name", ""),
+                    clean_text(selected_request.get("college_name", "")),
+                    clean_text(selected_request.get("training_topic", "")),
+                    clean_text(selected_request.get("trainer_name", "")),
                     selected_request.get("total_hours", ""),
                     selected_request.get("training_days", ""),
                     selected_request.get("approver_remarks", "")
@@ -224,8 +231,6 @@ def show_director_approval():
             m2.metric("Estimated Cost", f"₹{values['estimated_budget']:,.0f}")
             m3.metric("Remaining / Loss", f"₹{final_remaining:,.0f}")
 
-            m4, m5 = st.columns(2)
-
             if final_utilization <= 80:
                 final_risk_level = "Low Risk"
                 final_recommendation = "Recommended for Approval"
@@ -236,6 +241,7 @@ def show_director_approval():
                 final_risk_level = "High Risk"
                 final_recommendation = "Budget Exceeded"
 
+            m4, m5 = st.columns(2)
             m4.metric("Risk Level", final_risk_level)
             m5.metric("Budget Utilization", f"{final_utilization:.1f}%")
 
