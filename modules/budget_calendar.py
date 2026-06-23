@@ -4,9 +4,7 @@ from datetime import datetime, date
 import streamlit.components.v1 as components
 import pandas as pd
 
-
 REQUESTS_FILE = "requests.csv"
-
 
 DUMMY_BUDGETS = {
     "Chandigarh University": {
@@ -41,69 +39,19 @@ DUMMY_BUDGETS = {
     },
 }
 
-
 TRAININGS = {
     "Chandigarh University": [
-        {
-            "title": "AI/ML Training",
-            "trainer": "Rahul Sharma",
-            "start": date(2026, 7, 3),
-            "end": date(2026, 7, 7),
-            "status": "scheduled",
-            "cost": 50000,
-        },
-        {
-            "title": "University Event",
-            "trainer": "Not Assigned",
-            "start": date(2026, 7, 10),
-            "end": date(2026, 7, 11),
-            "status": "blocked",
-            "cost": 0,
-        },
-        {
-            "title": "Data Science Bootcamp",
-            "trainer": "Amit Verma",
-            "start": date(2026, 7, 18),
-            "end": date(2026, 7, 20),
-            "status": "upcoming",
-            "cost": 15000,
-        },
+        {"title": "AI/ML Training", "trainer": "Rahul Sharma", "start": date(2026, 7, 3), "end": date(2026, 7, 7), "status": "scheduled", "cost": 50000},
+        {"title": "University Event", "trainer": "Not Assigned", "start": date(2026, 7, 10), "end": date(2026, 7, 11), "status": "blocked", "cost": 0},
+        {"title": "Data Science Bootcamp", "trainer": "Amit Verma", "start": date(2026, 7, 18), "end": date(2026, 7, 20), "status": "upcoming", "cost": 15000},
     ],
     "Sharda University": [
-        {
-            "title": "Generative AI Workshop",
-            "trainer": "Rahul Sharma",
-            "start": date(2026, 7, 5),
-            "end": date(2026, 7, 8),
-            "status": "scheduled",
-            "cost": 45000,
-        },
-        {
-            "title": "Cloud Computing Session",
-            "trainer": "Neha Gupta",
-            "start": date(2026, 7, 15),
-            "end": date(2026, 7, 17),
-            "status": "upcoming",
-            "cost": 25000,
-        },
+        {"title": "Generative AI Workshop", "trainer": "Rahul Sharma", "start": date(2026, 7, 5), "end": date(2026, 7, 8), "status": "scheduled", "cost": 45000},
+        {"title": "Cloud Computing Session", "trainer": "Neha Gupta", "start": date(2026, 7, 15), "end": date(2026, 7, 17), "status": "upcoming", "cost": 25000},
     ],
     "Galgotias University": [
-        {
-            "title": "Cyber Security Program",
-            "trainer": "Karan Mehta",
-            "start": date(2026, 7, 11),
-            "end": date(2026, 7, 13),
-            "status": "blocked",
-            "cost": 30000,
-        },
-        {
-            "title": "Python Training",
-            "trainer": "Priya Singh",
-            "start": date(2026, 7, 22),
-            "end": date(2026, 7, 24),
-            "status": "upcoming",
-            "cost": 20000,
-        },
+        {"title": "Cyber Security Program", "trainer": "Karan Mehta", "start": date(2026, 7, 11), "end": date(2026, 7, 13), "status": "blocked", "cost": 30000},
+        {"title": "Python Training", "trainer": "Priya Singh", "start": date(2026, 7, 22), "end": date(2026, 7, 24), "status": "upcoming", "cost": 20000},
     ],
 }
 
@@ -119,18 +67,12 @@ def safe_number(value):
 
 def format_university_name(value):
     text = str(value).strip()
-
-    if not text:
-        return ""
-
     lower_text = text.lower()
 
     if "chandigarh" in lower_text:
         return "Chandigarh University"
-
     if "sharda" in lower_text:
         return "Sharda University"
-
     if "galgotias" in lower_text:
         return "Galgotias University"
 
@@ -159,34 +101,22 @@ def get_approved_trainings_from_requests():
     for _, row in approved_requests.iterrows():
         university = format_university_name(row.get("college_name", ""))
 
-        if not university:
-            continue
-
         try:
-            start_date = pd.to_datetime(row.get("start_date")).date()
-            end_date = pd.to_datetime(row.get("end_date")).date()
+            start_date = pd.to_datetime(row.get("start_date"), errors="coerce").date()
+            end_date = pd.to_datetime(row.get("end_date"), errors="coerce").date()
         except:
             continue
 
         title = str(row.get("training_topic", "Approved Training")).strip()
+        trainer = str(row.get("trainer_name", "Not Assigned")).strip()
 
         if not title:
             title = "Approved Training"
 
-        trainer = str(row.get("trainer_name", "Not Assigned")).strip()
-
         if not trainer:
             trainer = "Not Assigned"
 
-        cost = safe_number(
-            row.get(
-                "estimated_budget",
-                row.get(
-                    "total_expected_budget",
-                    row.get("partner_final_available_budget", 0)
-                )
-            )
-        )
+        cost = safe_number(row.get("estimated_budget", row.get("total_expected_budget", 0)))
 
         training = {
             "title": title.title(),
@@ -258,7 +188,6 @@ def find_conflicts(training_rows):
                 first["Start Date"] <= second["End Date"]
                 and second["Start Date"] <= first["End Date"]
             )
-
             different_university = first["University"] != second["University"]
 
             if same_trainer and date_overlap and different_university:
@@ -274,6 +203,105 @@ def find_conflicts(training_rows):
                 })
 
     return conflicts
+
+
+def show_training_operations_overview(all_trainings):
+    st.subheader("Training Operations Overview")
+
+    training_rows = flatten_trainings(all_trainings)
+
+    if not training_rows:
+        st.info("No trainings available for overview.")
+        return
+
+    overview_df = pd.DataFrame(training_rows)
+
+    overview_df["Start Date"] = pd.to_datetime(
+        overview_df["Start Date"],
+        errors="coerce"
+    )
+
+    overview_df["End Date"] = pd.to_datetime(
+        overview_df["End Date"],
+        errors="coerce"
+    )
+
+    overview_df = overview_df.dropna(subset=["Start Date", "End Date"])
+
+    if overview_df.empty:
+        st.info("No valid training dates available for overview.")
+        return
+
+    default_month = int(overview_df["Start Date"].iloc[0].month)
+
+    f1, f2, f3, f4 = st.columns(4)
+
+    university_options = ["All Universities"] + sorted(overview_df["University"].dropna().unique().tolist())
+    trainer_options = ["All Trainers"] + sorted(overview_df["Trainer"].dropna().unique().tolist())
+    status_options = ["All Status"] + sorted(overview_df["Status"].dropna().unique().tolist())
+
+    month_names = [
+        "All Months", "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ]
+
+    with f1:
+        filter_university = st.selectbox("Filter by University", university_options)
+
+    with f2:
+        filter_trainer = st.selectbox("Filter by Trainer", trainer_options)
+
+    with f3:
+        filter_month = st.selectbox("Filter by Month", month_names, index=default_month)
+
+    with f4:
+        filter_status = st.selectbox("Filter by Status", status_options)
+
+    filtered_df = overview_df.copy()
+
+    if filter_university != "All Universities":
+        filtered_df = filtered_df[filtered_df["University"] == filter_university]
+
+    if filter_trainer != "All Trainers":
+        filtered_df = filtered_df[filtered_df["Trainer"] == filter_trainer]
+
+    if filter_month != "All Months":
+        month_number = month_names.index(filter_month)
+        filtered_df = filtered_df[filtered_df["Start Date"].dt.month == month_number]
+
+    if filter_status != "All Status":
+        filtered_df = filtered_df[filtered_df["Status"] == filter_status]
+
+    display_df = filtered_df.copy()
+
+    if display_df.empty:
+        st.info("No trainings found for selected filters.")
+    else:
+        display_df["Date Range"] = display_df.apply(
+            lambda row: f"{row['Start Date'].strftime('%d %b %Y')} - {row['End Date'].strftime('%d %b %Y')}",
+            axis=1
+        )
+
+        display_df["Budget"] = display_df["Budget"].apply(lambda x: f"₹{x:,.0f}")
+
+        display_df = display_df[
+            ["University", "Trainer", "Training", "Date Range", "Budget", "Status"]
+        ]
+
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+    conflicts = find_conflicts(training_rows)
+
+    st.subheader("Conflict Detection")
+
+    if conflicts:
+        conflict_df = pd.DataFrame(conflicts)
+        st.error("Potential trainer schedule conflict detected.")
+        st.dataframe(conflict_df, use_container_width=True, hide_index=True)
+    else:
+        st.success("No trainer schedule conflicts detected.")
+
+    st.markdown("---")
 
 
 def get_training_for_day(day_date, university):
@@ -338,92 +366,9 @@ def get_yearly_budget_summary(university, fy_start_year):
             total_exhausted += training.get("cost", 0)
 
     total_left = total_available - total_exhausted
-
-    if total_available > 0:
-        utilization = (total_exhausted / total_available) * 100
-    else:
-        utilization = 0
+    utilization = (total_exhausted / total_available) * 100 if total_available > 0 else 0
 
     return total_available, total_exhausted, total_left, utilization
-
-
-def show_training_operations_overview(all_trainings):
-    st.subheader("Training Operations Overview")
-
-    training_rows = flatten_trainings(all_trainings)
-
-    if not training_rows:
-        st.info("No trainings available for overview.")
-        return
-
-    overview_df = pd.DataFrame(training_rows)
-
-    min_date = overview_df["Start Date"].min()
-    default_month = min_date.month if pd.notna(min_date) else 7
-
-    f1, f2, f3, f4 = st.columns(4)
-
-    university_options = ["All Universities"] + sorted(overview_df["University"].dropna().unique().tolist())
-    trainer_options = ["All Trainers"] + sorted(overview_df["Trainer"].dropna().unique().tolist())
-    status_options = ["All Status"] + sorted(overview_df["Status"].dropna().unique().tolist())
-
-    month_names = [
-        "All Months", "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ]
-
-    with f1:
-        filter_university = st.selectbox("Filter by University", university_options)
-
-    with f2:
-        filter_trainer = st.selectbox("Filter by Trainer", trainer_options)
-
-    with f3:
-        filter_month = st.selectbox("Filter by Month", month_names, index=default_month)
-
-    with f4:
-        filter_status = st.selectbox("Filter by Status", status_options)
-
-    filtered_df = overview_df.copy()
-
-    if filter_university != "All Universities":
-        filtered_df = filtered_df[filtered_df["University"] == filter_university]
-
-    if filter_trainer != "All Trainers":
-        filtered_df = filtered_df[filtered_df["Trainer"] == filter_trainer]
-
-    if filter_month != "All Months":
-        month_number = month_names.index(filter_month)
-        filtered_df = filtered_df[filtered_df["Start Date"].apply(lambda x: x.month == month_number)]
-
-    if filter_status != "All Status":
-        filtered_df = filtered_df[filtered_df["Status"] == filter_status]
-
-    display_df = filtered_df.copy()
-    display_df["Date Range"] = display_df.apply(
-        lambda row: f"{row['Start Date'].strftime('%d %b %Y')} - {row['End Date'].strftime('%d %b %Y')}",
-        axis=1
-    )
-    display_df["Budget"] = display_df["Budget"].apply(lambda x: f"₹{x:,.0f}")
-
-    display_df = display_df[
-        ["University", "Trainer", "Training", "Date Range", "Budget", "Status"]
-    ]
-
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
-
-    conflicts = find_conflicts(training_rows)
-
-    st.subheader("Conflict Detection")
-
-    if conflicts:
-        conflict_df = pd.DataFrame(conflicts)
-        st.error("Potential trainer schedule conflict detected.")
-        st.dataframe(conflict_df, use_container_width=True, hide_index=True)
-    else:
-        st.success("No trainer schedule conflicts detected.")
-
-    st.markdown("---")
 
 
 def show_budget_calendar():
@@ -445,26 +390,16 @@ def show_budget_calendar():
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        selected_year = st.selectbox(
-            "Select Year",
-            [2026, 2027, 2028, 2029, 2030],
-        )
+        selected_year = st.selectbox("Select Year", [2026, 2027, 2028, 2029, 2030])
 
     with col2:
-        selected_month_name = st.selectbox(
-            "Select Month",
-            month_names,
-            index=6,
-        )
+        selected_month_name = st.selectbox("Select Month", month_names, index=6)
 
     month_number = month_names.index(selected_month_name) + 1
     max_day = calendar.monthrange(selected_year, month_number)[1]
 
     with col3:
-        selected_university = st.selectbox(
-            "Select University",
-            university_options,
-        )
+        selected_university = st.selectbox("Select University", university_options)
 
     with col4:
         selected_date = st.date_input(
