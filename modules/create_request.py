@@ -1555,7 +1555,7 @@ def show_create_request(username):
         )
 
         email_sent = send_email(
-            "shalinidics1993@gmail.com",
+            "Kapil.Arora@in.gt.com",
             "New Training Request Received",
             f"""
 Request ID: {request_id}
