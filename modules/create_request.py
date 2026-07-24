@@ -849,8 +849,22 @@ def load_budget_master():
         for month in month_columns:
             df[month] = df[month].apply(safe_number)
 
+        # The updated Excel has duplicate "Training hours" and "Total" headers.
+        # Pandas names the second copies training_hours_1 and total_1.
+        if "training_hours_1" in df.columns:
+            df["training_hours"] = df["training_hours"].where(
+                df["training_hours"].astype(str).str.strip() != "",
+                df["training_hours_1"]
+            )
+
+        if "total_1" in df.columns:
+            df["annual_total"] = df["total_1"]
+        else:
+            df["annual_total"] = df["total"]
+
         df["training_hours"] = df["training_hours"].apply(safe_number)
         df["total"] = df["total"].apply(safe_number)
+        df["annual_total"] = df["annual_total"].apply(safe_number)
 
         return df.fillna("")
 
@@ -988,7 +1002,7 @@ def show_create_request(username):
     with c1:
         college_options = get_unique_values(
             budget_df,
-            "vendor_name"
+            "line_of_business"
         )
 
         college_name = st.selectbox(
@@ -1032,9 +1046,9 @@ def show_create_request(username):
 
     filtered_df = budget_df.copy()
 
-    if "vendor_name" in filtered_df.columns:
+    if "line_of_business" in filtered_df.columns:
         filtered_df = filtered_df[
-            filtered_df["vendor_name"]
+            filtered_df["line_of_business"]
             .astype(str)
             .str.strip() == college_name
         ]
@@ -1179,7 +1193,7 @@ def show_create_request(username):
     total_cost_from_master = (
         safe_number(
             selected_master.get(
-                "total",
+                "annual_total",
                 0
             )
         )
