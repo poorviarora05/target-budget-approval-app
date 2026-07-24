@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import re
 from datetime import datetime
 from db import get_connection
 from email_utils import send_email
