@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import re
 from db import get_connection
 from email_utils import send_email
 
@@ -13,6 +14,130 @@ MONTHS = [
     "jan", "feb", "mar", "apr", "may", "jun",
     "jul", "aug", "sep", "oct", "nov", "dec"
 ]
+
+MONTH_ORDER = {
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4,
+    "may": 5, "jun": 6, "jul": 7, "aug": 8,
+    "sep": 9, "oct": 10, "nov": 11, "dec": 12
+}
+
+
+def get_dynamic_month_columns(df):
+    """Return month-year columns such as apr_26 ... mar_27 in date order."""
+    month_columns = []
+
+    for column in df.columns:
+        match = re.fullmatch(
+            r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)_(\\d{2})",
+            str(column).strip().lower()
+        )
+
+        if match:
+            month_name, year_suffix = match.groups()
+            full_year = 2000 + int(year_suffix)
+
+            month_columns.append(
+                (
+                    full_year,
+                    MONTH_ORDER[month_name],
+                    column
+                )
+            )
+
+    month_columns.sort(
+        key=lambda item: (
+            item[0],
+            item[1]
+        )
+    )
+
+    return [
+        item[2]
+        for item in month_columns
+    ]
+
+
+def financial_year_from_month_column(column):
+    match = re.fullmatch(
+        r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)_(\\d{2})",
+        str(column).strip().lower()
+    )
+
+    if not match:
+        return ""
+
+    month_name, year_suffix = match.groups()
+    year = 2000 + int(year_suffix)
+
+    start_year = (
+        year
+        if MONTH_ORDER[month_name] >= 4
+        else year - 1
+    )
+
+    return f"{start_year}-{str(start_year + 1)[-2:]}"
+
+
+def get_financial_year_options(df):
+    options = []
+
+    for column in get_dynamic_month_columns(df):
+        financial_year = financial_year_from_month_column(
+            column
+        )
+
+        if (
+            financial_year
+            and financial_year not in options
+        ):
+            options.append(financial_year)
+
+    return options
+
+
+def get_financial_year_month_columns(df, financial_year):
+    try:
+        start_year = int(
+            str(financial_year).split("-")[0]
+        )
+    except Exception:
+        return []
+
+    expected_columns = [
+        f"apr_{str(start_year)[-2:]}",
+        f"may_{str(start_year)[-2:]}",
+        f"jun_{str(start_year)[-2:]}",
+        f"jul_{str(start_year)[-2:]}",
+        f"aug_{str(start_year)[-2:]}",
+        f"sep_{str(start_year)[-2:]}",
+        f"oct_{str(start_year)[-2:]}",
+        f"nov_{str(start_year)[-2:]}",
+        f"dec_{str(start_year)[-2:]}",
+        f"jan_{str(start_year + 1)[-2:]}",
+        f"feb_{str(start_year + 1)[-2:]}",
+        f"mar_{str(start_year + 1)[-2:]}"
+    ]
+
+    return expected_columns
+
+
+def month_column_label(column):
+    parts = str(column).split("_")
+
+    if len(parts) != 2:
+        return str(column).upper()
+
+    return f"{parts[0].upper()}-{parts[1]}"
+
+
+def annual_budget_for_financial_year(row, month_columns):
+    return sum(
+        safe_number(
+            row.get(month_column, 0),
+            0
+        )
+        for month_column in month_columns
+    )
 
 
 # =========================================================
@@ -734,6 +859,9 @@ def normalize_columns(df):
         "business": "business_type",
         "business_type": "business_type",
 
+        "vendor_name": "vendor_name",
+        "vendor_type": "vendor_type",
+
         "lineofbusiness": "line_of_business",
         "line_of_business": "line_of_business",
 
@@ -745,10 +873,12 @@ def normalize_columns(df):
         "jobcode": "job_code",
         "job_code": "job_code",
 
+        "batches": "batch",
         "batch_no": "batch",
         "batch_number": "batch_number",
 
         "sem": "semester",
+        "semester": "semester",
 
         "training_hour": "training_hours",
         "training_hours": "training_hours",
@@ -792,64 +922,6 @@ def normalize_columns(df):
         inplace=True
     )
 
-    for column in list(df.columns):
-        clean_column = (
-            column
-            .replace("_", "")
-            .lower()
-        )
-
-        month_map = {
-            "jan": "jan",
-            "january": "jan",
-
-            "feb": "feb",
-            "february": "feb",
-
-            "mar": "mar",
-            "march": "mar",
-
-            "apr": "apr",
-            "april": "apr",
-
-            "may": "may",
-
-            "jun": "jun",
-            "june": "jun",
-
-            "jul": "jul",
-            "july": "jul",
-
-            "aug": "aug",
-            "august": "aug",
-
-            "sep": "sep",
-            "sept": "sep",
-            "september": "sep",
-
-            "oct": "oct",
-            "october": "oct",
-
-            "nov": "nov",
-            "november": "nov",
-
-            "dec": "dec",
-            "december": "dec"
-        }
-
-        for key, month in month_map.items():
-            if (
-                clean_column == key
-                or clean_column == f"{key}budget"
-                or clean_column.startswith(key + "202")
-            ):
-                df.rename(
-                    columns={
-                        column: month
-                    },
-                    inplace=True
-                )
-
     return df
 
 
@@ -880,43 +952,123 @@ def load_budget_master():
             "paper_name",
             "batch_number",
             "total"
-        ] + MONTHS
+        ]
 
         for column in required_columns:
             if column not in df.columns:
                 df[column] = ""
 
-        for month in MONTHS:
-            df[month] = df[month].apply(
+        # Pandas changes duplicate headers to Training hours.1 / Total.1.
+        # After normalization these become training_hours1 / total1.
+        duplicate_training_hours = next(
+            (
+                column
+                for column in [
+                    "training_hours1",
+                    "training_hours_1"
+                ]
+                if column in df.columns
+            ),
+            None
+        )
+
+        if duplicate_training_hours:
+            blank_training_hours = (
+                df["training_hours"]
+                .astype(str)
+                .str.strip()
+                .isin(
+                    [
+                        "",
+                        "nan",
+                        "None",
+                        "NaN"
+                    ]
+                )
+            )
+
+            df.loc[
+                blank_training_hours,
+                "training_hours"
+            ] = df.loc[
+                blank_training_hours,
+                duplicate_training_hours
+            ]
+
+        dynamic_month_columns = get_dynamic_month_columns(
+            df
+        )
+
+        for month_column in dynamic_month_columns:
+            df[month_column] = df[
+                month_column
+            ].apply(
                 lambda value:
                 safe_number(value, 0)
             )
 
-        df["total"] = df["total"].apply(
+        # Keep old month columns supported without converting
+        # dated columns such as Jul-26 into plain Jul.
+        for month in MONTHS:
+            if month in df.columns:
+                df[month] = df[
+                    month
+                ].apply(
+                    lambda value:
+                    safe_number(value, 0)
+                )
+
+        df["training_hours"] = df[
+            "training_hours"
+        ].apply(
             lambda value:
             safe_number(value, 0)
         )
 
-        for index in df.index:
-            month_total = sum(
-                safe_number(
-                    df.loc[index, month],
-                    0
-                )
-                for month in MONTHS
+        duplicate_total = next(
+            (
+                column
+                for column in [
+                    "total1",
+                    "total_1"
+                ]
+                if column in df.columns
+            ),
+            None
+        )
+
+        if duplicate_total:
+            df["annual_total"] = df[
+                duplicate_total
+            ].apply(
+                lambda value:
+                safe_number(value, 0)
+            )
+        else:
+            df["annual_total"] = df[
+                "total"
+            ].apply(
+                lambda value:
+                safe_number(value, 0)
             )
 
-            if (
-                safe_number(
-                    df.loc[index, "total"],
-                    0
-                ) == 0
-                and month_total > 0
-            ):
-                df.loc[
-                    index,
-                    "total"
-                ] = month_total
+        if dynamic_month_columns:
+            calculated_total = df[
+                dynamic_month_columns
+            ].sum(
+                axis=1
+            )
+
+            df["annual_total"] = df[
+                "annual_total"
+            ].where(
+                df["annual_total"] > 0,
+                calculated_total
+            )
+
+        df["total"] = df[
+            "annual_total"
+        ]
 
         return df.fillna("")
 
@@ -1052,6 +1204,19 @@ def filter_budget_master(
     if (
         year is not None
         and "year" in filtered.columns
+        and filtered["year"]
+        .astype(str)
+        .str.strip()
+        .replace(
+            [
+                "nan",
+                "None",
+                "NaN"
+            ],
+            ""
+        )
+        .ne("")
+        .any()
     ):
         filters["year"] = year
 
@@ -2156,34 +2321,36 @@ def show_approver_calculation_page(
         st.columns(2)
     )
 
-    year_options = get_unique_values(
-        budget_df,
-        "year"
+    year_options = get_financial_year_options(
+        budget_df
     )
 
     if not year_options:
         year_options = [
-            "2026",
-            "2027",
-            "2028"
+            "2026-27"
         ]
 
     with selection_column_1:
         year = st.selectbox(
-            "Budget Year",
+            "Budget Financial Year",
             year_options,
             index=0,
             key=f"year_{request_id}"
         )
 
+    financial_year_month_columns = (
+        get_financial_year_month_columns(
+            budget_df,
+            year
+        )
+    )
+
     with selection_column_2:
         budget_month = st.selectbox(
             "Budget Month",
-            MONTHS,
+            financial_year_month_columns,
             index=0,
-            format_func=lambda month: (
-                month.upper()
-            ),
+            format_func=month_column_label,
             key=f"budget_month_{request_id}"
         )
 
@@ -2248,11 +2415,9 @@ def show_approver_calculation_page(
     )
 
     annual_available_budget = (
-        safe_number(
-            selected_master.get(
-                "total",
-                0
-            )
+        annual_budget_for_financial_year(
+            selected_master,
+            financial_year_month_columns
         )
         if len(selected_master)
         else safe_number(
@@ -2262,6 +2427,20 @@ def show_approver_calculation_page(
             )
         )
     )
+
+    if (
+        annual_available_budget <= 0
+        and len(selected_master)
+    ):
+        annual_available_budget = safe_number(
+            selected_master.get(
+                "annual_total",
+                selected_master.get(
+                    "total",
+                    0
+                )
+            )
+        )
 
     total_available_budget = (
         monthly_available_budget
@@ -2284,7 +2463,7 @@ def show_approver_calculation_page(
     with verification_column_1:
         st.metric(
             (
-                f"{budget_month.upper()} "
+                f"{month_column_label(budget_month)} "
                 "Monthly Budget"
             ),
             f"₹{monthly_available_budget:,.0f}"
@@ -2319,7 +2498,7 @@ def show_approver_calculation_page(
     elif monthly_available_budget <= 0:
         st.warning(
             (
-                f"{budget_month.upper()} month ka "
+                f"{month_column_label(budget_month)} month ka "
                 "budget 0 hai. Approver should "
                 "verify annual budget."
             )
@@ -2374,7 +2553,7 @@ def show_approver_calculation_page(
                 batch,
                 semester,
                 year,
-                budget_month.upper(),
+                month_column_label(budget_month),
                 training_hours_from_master,
                 paper_name,
                 f"₹{monthly_available_budget:,.0f}",
@@ -3017,21 +3196,34 @@ def show_budget_update_page():
             "budget_semester"
         )
 
-        year_update = select_or_add(
-            "Year",
-            (
-                get_unique_values(
-                    budget_master_df,
-                    "year"
-                )
-                or [
-                    "2026",
-                    "2027",
-                    "2028"
-                ]
-            ),
-            "budget_year"
+        financial_year_options = (
+            get_financial_year_options(
+                budget_master_df
+            )
+            or [
+                "2026-27"
+            ]
         )
+
+        year_update = select_or_add(
+            "Financial Year",
+            financial_year_options,
+            "budget_year",
+            financial_year_options[0]
+        )
+
+    financial_year_month_columns = (
+        get_financial_year_month_columns(
+            budget_master_df,
+            year_update
+        )
+    )
+
+    for month_column in financial_year_month_columns:
+        if month_column not in budget_master_df.columns:
+            budget_master_df[
+                month_column
+            ] = 0
 
     existing_rows = filter_budget_master(
         budget_master_df,
@@ -3042,25 +3234,6 @@ def show_budget_update_page():
         batch_update,
         semester_update
     )
-
-    if (
-        not existing_rows.empty
-        and "year"
-        in existing_rows.columns
-    ):
-        year_matched_rows = existing_rows[
-            existing_rows["year"]
-            .astype(str)
-            .apply(normalize_text)
-            == normalize_text(
-                year_update
-            )
-        ]
-
-        if not year_matched_rows.empty:
-            existing_rows = (
-                year_matched_rows
-            )
 
     existing_row = (
         existing_rows.iloc[0]
@@ -3116,7 +3289,7 @@ def show_budget_update_page():
         "Monthly Budget Entry",
         (
             "Update monthly values for the selected "
-            "budget line. Annual total is calculated automatically."
+            "financial year. Annual total is calculated automatically."
         )
     )
 
@@ -3138,18 +3311,20 @@ def show_budget_update_page():
         st.columns(3)
     )
 
-    month_columns = [
+    month_display_columns = [
         month_column_1,
         month_column_2,
         month_column_3
     ]
 
-    for index, month in enumerate(MONTHS):
+    for index, month_column in enumerate(
+        financial_year_month_columns
+    ):
         default_month_value = (
             int(
                 safe_number(
                     existing_row.get(
-                        month,
+                        month_column,
                         0
                     )
                 )
@@ -3158,15 +3333,15 @@ def show_budget_update_page():
             else 0
         )
 
-        with month_columns[index % 3]:
-            month_values[month] = (
+        with month_display_columns[index % 3]:
+            month_values[month_column] = (
                 st.number_input(
-                    f"{month.upper()} Budget",
+                    f"{month_column_label(month_column)} Budget",
                     min_value=0,
                     value=default_month_value,
                     step=1000,
                     key=(
-                        f"{month}_budget_input_"
+                        f"{month_column}_budget_input_"
                         f"{combination_key}"
                     )
                 )
@@ -3214,15 +3389,18 @@ def show_budget_update_page():
             "paper_name":
                 paper_name_update,
 
+            "annual_total":
+                annual_total,
+
             "total":
                 annual_total
         }
 
-        for month in MONTHS:
+        for month_column in financial_year_month_columns:
             new_budget_row[
-                month
+                month_column
             ] = month_values[
-                month
+                month_column
             ]
 
         for column in new_budget_row.keys():
@@ -3299,35 +3477,6 @@ def show_budget_update_page():
             )
         )
 
-        if "year" in budget_master_df.columns:
-            year_match = (
-                budget_master_df[
-                    "year"
-                ]
-                .astype(str)
-                .apply(normalize_text)
-                == normalize_text(
-                    year_update
-                )
-            )
-
-            blank_year = (
-                budget_master_df[
-                    "year"
-                ]
-                .astype(str)
-                .apply(normalize_text)
-                == ""
-            )
-
-            match_condition = (
-                match_condition
-                & (
-                    year_match
-                    | blank_year
-                )
-            )
-
         if (
             not budget_master_df.empty
             and match_condition.any()
@@ -3368,8 +3517,44 @@ def show_budget_update_page():
             budget_master_df
         )
 
+        # Existing MySQL structure is retained. The selected financial-year
+        # months are mapped into its Jan-Dec fields without changing the DB.
+        mysql_row = {
+            "business_type": business_type_update,
+            "line_of_business": line_update,
+            "programme_name": programme_update,
+            "job_code": job_code_update,
+            "batch": batch_update,
+            "semester": semester_update,
+            "year": year_update,
+            "training_hours": training_hours_update,
+            "paper_name": paper_name_update,
+            "total": annual_total
+        }
+
+        for month in MONTHS:
+            matching_column = next(
+                (
+                    column
+                    for column in financial_year_month_columns
+                    if column.startswith(
+                        f"{month}_"
+                    )
+                ),
+                None
+            )
+
+            mysql_row[month] = (
+                month_values.get(
+                    matching_column,
+                    0
+                )
+                if matching_column
+                else 0
+            )
+
         save_budget_to_mysql(
-            new_budget_row
+            mysql_row
         )
 
         st.info(
