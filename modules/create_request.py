@@ -808,50 +808,48 @@ def load_budget_master():
             columns={
                 "business": "business_type",
                 "business_type": "business_type",
+                "vendor_name": "vendor_name",
+                "vendor_type": "vendor_type",
                 "line_of_business": "line_of_business",
                 "programme_name": "programme_name",
                 "program_name": "programme_name",
                 "job_code": "job_code",
+                "batches": "batch",
+                "batch_number": "batch",
                 "training_hour": "training_hours",
                 "training_hours": "training_hours",
-                "paper_name": "paper_name",
-                "batch_number": "batch_number",
-                "january": "jan",
-                "february": "feb",
-                "march": "mar",
-                "april": "apr",
-                "june": "jun",
-                "july": "jul",
-                "august": "aug",
-                "sept": "sep",
-                "september": "sep",
-                "october": "oct",
-                "november": "nov",
-                "december": "dec"
+                "paper_name": "paper_name"
             },
             inplace=True
         )
 
         required_columns = [
             "business_type",
+            "vendor_name",
+            "vendor_type",
             "line_of_business",
             "programme_name",
             "job_code",
             "batch",
             "semester",
-            "year",
             "training_hours",
             "paper_name",
             "total"
-        ] + list(MONTH_MAP.values())
+        ]
 
         for col in required_columns:
             if col not in df.columns:
                 df[col] = ""
 
-        for month in MONTH_MAP.values():
+        month_columns = [
+            col for col in df.columns
+            if re.fullmatch(r"[a-z]{3}_\\d{2}", col)
+        ]
+
+        for month in month_columns:
             df[month] = df[month].apply(safe_number)
 
+        df["training_hours"] = df["training_hours"].apply(safe_number)
         df["total"] = df["total"].apply(safe_number)
 
         return df.fillna("")
@@ -988,32 +986,16 @@ def show_create_request(username):
     c1, c2, c3 = st.columns(3)
 
     with c1:
+        college_options = get_unique_values(
+            budget_df,
+            "vendor_name"
+        )
+
         college_name = st.selectbox(
             "College / University",
-            [
-                "Graphic Era",
-                "Chandigarh University",
-                "Sharda University",
-                "Galgotias University",
-                "Amity University",
-                "UPES",
-                "Bennett University",
-                "Lovely Professional University",
-                "Manav Rachna University",
-                "VIT",
-                "SRM University",
-                "KIIT",
-                "BITS Pilani",
-                "Delhi University",
-                "Indraprastha University",
-                "Thapar University",
-                "Northcap University",
-                "KR Mangalam University",
-                "GD Goenka University",
-                "SSMRV UNIVERSITY",
-                "RAJAGIRI UNIVERSITY",
-                "IMS UNIVERSITY GHAZIABAD"
-            ]
+            college_options
+            if college_options
+            else ["Not Available"]
         )
 
     with c2:
@@ -1049,6 +1031,13 @@ def show_create_request(username):
     )
 
     filtered_df = budget_df.copy()
+
+    if "vendor_name" in filtered_df.columns:
+        filtered_df = filtered_df[
+            filtered_df["vendor_name"]
+            .astype(str)
+            .str.strip() == college_name
+        ]
 
     if "business_type" in filtered_df.columns:
         filtered_df = filtered_df[
@@ -1234,12 +1223,13 @@ def show_create_request(username):
             disabled=True
         )
 
-    selected_month_col = MONTH_MAP.get(
-        start_date.month,
-        ""
-    )
+    selected_month_col = start_date.strftime(
+        "%b_%y"
+    ).lower()
 
-    selected_month_name = selected_month_col.upper()
+    selected_month_name = start_date.strftime(
+        "%b-%y"
+    ).upper()
 
     monthly_budget_from_master = (
         safe_number(
