@@ -852,14 +852,30 @@ def load_budget_master():
 
         # The updated Excel has duplicate "Training hours" and "Total" headers.
         # Pandas names the second copies training_hours_1 and total_1.
-        if "training_hours_1" in df.columns:
+        duplicate_training_hours_col = next(
+            (
+                col for col in ["training_hours1", "training_hours_1"]
+                if col in df.columns
+            ),
+            None
+        )
+
+        if duplicate_training_hours_col:
             df["training_hours"] = df["training_hours"].where(
                 df["training_hours"].astype(str).str.strip() != "",
-                df["training_hours_1"]
+                df[duplicate_training_hours_col]
             )
 
-        if "total_1" in df.columns:
-            df["annual_total"] = df["total_1"]
+        duplicate_total_col = next(
+            (
+                col for col in ["total1", "total_1"]
+                if col in df.columns
+            ),
+            None
+        )
+
+        if duplicate_total_col:
+            df["annual_total"] = df[duplicate_total_col]
         else:
             df["annual_total"] = df["total"]
 
@@ -1136,7 +1152,10 @@ def show_create_request(username):
             else ["Not Available"]
         )
 
-    if "batch" in filtered_df.columns:
+    if (
+        "batch" in filtered_df.columns
+        and batch != "Not Available"
+    ):
         filtered_df = filtered_df[
             filtered_df["batch"]
             .astype(str)
@@ -1156,7 +1175,10 @@ def show_create_request(username):
             else ["Not Available"]
         )
 
-    if "semester" in filtered_df.columns:
+    if (
+        "semester" in filtered_df.columns
+        and semester != "Not Available"
+    ):
         filtered_df = filtered_df[
             filtered_df["semester"]
             .astype(str)
