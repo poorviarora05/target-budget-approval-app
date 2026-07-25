@@ -856,36 +856,38 @@ def normalize_columns(df):
     )
 
     rename_map = {
-        "business": "business_type",
+        # Exact new budget.csv headings
         "business_type": "business_type",
-
-        "vendor_name": "vendor_name",
-        "vendor_type": "vendor_type",
-
-        "lineofbusiness": "line_of_business",
-        "line_of_business": "line_of_business",
-
-        "programme": "programme_name",
-        "program": "programme_name",
+        "client_name": "college_name",
         "programme_name": "programme_name",
         "program_name": "programme_name",
+        "mode_of_training": "mode_of_training",
+        "paper_name": "paper_name",
+        "no_of_batches": "batch",
+        "number_of_batches": "batch",
+        "training_hour": "training_hours",
+        "training_hours": "training_hours",
+        "vendor_type": "vendor_type",
+        "vendor_name": "vendor_name",
 
+        # First Year = FY26-27, second duplicate Year = Year.1
+        "year": "financial_year",
+        "year1": "calendar_year",
+
+        # Existing aliases retained only for backward compatibility
+        "business": "business_type",
+        "lineofbusiness": "line_of_business",
+        "line_of_business": "line_of_business",
+        "programme": "programme_name",
+        "program": "programme_name",
         "jobcode": "job_code",
         "job_code": "job_code",
-
         "batches": "batch",
         "batch_no": "batch",
         "batch_number": "batch_number",
-
         "sem": "semester",
         "semester": "semester",
-
-        "training_hour": "training_hours",
-        "training_hours": "training_hours",
-
         "paper": "paper_name",
-        "paper_name": "paper_name",
-
         "total_budget": "total",
         "annual_total": "total",
         "grand_total": "total",
@@ -929,148 +931,307 @@ def normalize_columns(df):
 # BUDGET MASTER HELPERS
 # =========================================================
 
+def _canonical_financial_year(value, calendar_year=""):
+    text = clean_value(value)
+
+    match = re.search(
+        r"(?:FY)?(\\d{2,4})\\s*[-/]\\s*(\\d{2,4})",
+        text,
+        flags=re.IGNORECASE
+    )
+
+    if match:
+        first = match.group(1)
+        second = match.group(2)
+
+        start_year = (
+            int(first)
+            if len(first) == 4
+            else 2000 + int(first)
+        )
+
+        end_suffix = (
+            str(int(second))[-2:]
+        )
+
+        return f"{start_year}-{end_suffix}"
+
+    calendar_text = clean_value(calendar_year)
+    year_match = re.search(r"20\\d{2}", calendar_text)
+
+    if year_match:
+        start_year = int(year_match.group())
+        return f"{start_year}-{str(start_year + 1)[-2:]}"
+
+    return ""
+
+
+def _financial_year_csv_label(value):
+    canonical = _canonical_financial_year(value)
+
+    if not canonical:
+        return clean_value(value)
+
+    start_year = canonical.split("-")[0]
+    end_suffix = canonical.split("-")[1]
+
+    return f"FY{start_year[-2:]}-{end_suffix}"
+
+
 def load_budget_master():
     try:
-        df = pd.read_csv(
+        raw_df = pd.read_csv(
             BUDGET_MASTER_FILE,
             encoding="latin1"
         )
 
-        df = normalize_columns(df)
+        raw_df = normalize_columns(raw_df).fillna("")
 
-        required_columns = [
+        required_source_columns = [
             "business_type",
+            "college_name",
+            "financial_year",
+            "calendar_year",
+            "semester",
+            "programme_name",
+            "mode_of_training",
+            "paper_name",
+            "batch",
+            "training_hours",
+            "vendor_type",
+            "vendor_name",
+            "total"
+        ] + MONTHS
+
+        for column in required_source_columns:
+            if column not in raw_df.columns:
+                raw_df[column] = ""
+
+        # Client Name is used internally by the existing Approver UI
+        # as both college_name and line_of_business. UI remains unchanged.
+        if "line_of_business" not in raw_df.columns:
+            raw_df["line_of_business"] = raw_df[
+                "college_name"
+            ]
+        else:
+            blank_lob = (
+                raw_df["line_of_business"]
+                .astype(str)
+                .str.strip()
+                .isin(["", "nan", "None", "NaN"])
+            )
+
+            raw_df.loc[
+                blank_lob,
+                "line_of_business"
+            ] = raw_df.loc[
+                blank_lob,
+                "college_name"
+            ]
+
+        if "job_code" not in raw_df.columns:
+            raw_df["job_code"] = "Not Available"
+
+        raw_df["job_code"] = (
+            raw_df["job_code"]
+            .astype(str)
+            .str.strip()
+            .replace("", "Not Available")
+        )
+
+        if "batch_number" not in raw_df.columns:
+            raw_df["batch_number"] = ""
+
+        raw_df["training_hours"] = raw_df[
+            "training_hours"
+        ].apply(
+            lambda value: safe_number(value, 0)
+        )
+
+        for month in MONTHS:
+            raw_df[month] = raw_df[month].apply(
+                lambda value: safe_number(value, 0)
+            )
+
+        # Convert the new CSV's Year.1 + Jan-Dec rows into the internal
+        # dynamic month format already used by the existing Approver logic.
+        internal_rows = []
+
+        group_columns = [
+            "business_type",
+            "college_name",
+            "line_of_business",
+            "programme_name",
+            "mode_of_training",
+            "paper_name",
+            "batch",
+            "semester",
+            "training_hours",
+            "vendor_type",
+            "vendor_name",
+            "job_code",
+            "batch_number"
+        ]
+
+        for _, source_row in raw_df.iterrows():
+            calendar_year_text = clean_value(
+                source_row.get(
+                    "calendar_year",
+                    ""
+                )
+            )
+
+            year_match = re.search(
+                r"20\\d{2}",
+                calendar_year_text
+            )
+
+            financial_year = _canonical_financial_year(
+                source_row.get(
+                    "financial_year",
+                    ""
+                ),
+                calendar_year_text
+            )
+
+            internal_row = {
+                column: source_row.get(column, "")
+                for column in group_columns
+            }
+
+            internal_row["year"] = financial_year
+            internal_row["financial_year"] = financial_year
+            internal_row["annual_total"] = 0
+            internal_row["total"] = 0
+
+            if year_match:
+                calendar_year = int(
+                    year_match.group()
+                )
+
+                year_suffix = str(
+                    calendar_year
+                )[-2:]
+
+                for month in MONTHS:
+                    internal_row[
+                        f"{month}_{year_suffix}"
+                    ] = safe_number(
+                        source_row.get(month, 0),
+                        0
+                    )
+
+            else:
+                # Backward-compatible fallback for any old plain Jan-Dec row.
+                for month in MONTHS:
+                    internal_row[month] = safe_number(
+                        source_row.get(month, 0),
+                        0
+                    )
+
+            internal_rows.append(
+                internal_row
+            )
+
+        if not internal_rows:
+            return pd.DataFrame()
+
+        internal_df = pd.DataFrame(
+            internal_rows
+        ).fillna("")
+
+        dynamic_month_columns = get_dynamic_month_columns(
+            internal_df
+        )
+
+        # Consolidate 2026 and 2027 calendar rows belonging to the same
+        # FY budget line into one internal row.
+        grouping_columns = [
+            column
+            for column in (
+                group_columns
+                + ["year", "financial_year"]
+            )
+            if column in internal_df.columns
+        ]
+
+        aggregation = {
+            column: "sum"
+            for column in dynamic_month_columns
+        }
+
+        for month in MONTHS:
+            if month in internal_df.columns:
+                aggregation[month] = "sum"
+
+        if aggregation:
+            internal_df = (
+                internal_df
+                .groupby(
+                    grouping_columns,
+                    dropna=False,
+                    as_index=False
+                )
+                .agg(aggregation)
+            )
+
+        dynamic_month_columns = get_dynamic_month_columns(
+            internal_df
+        )
+
+        for month_column in dynamic_month_columns:
+            internal_df[month_column] = internal_df[
+                month_column
+            ].apply(
+                lambda value: safe_number(value, 0)
+            )
+
+        if dynamic_month_columns:
+            internal_df["annual_total"] = internal_df[
+                dynamic_month_columns
+            ].sum(axis=1)
+        else:
+            existing_months = [
+                month
+                for month in MONTHS
+                if month in internal_df.columns
+            ]
+
+            internal_df["annual_total"] = (
+                internal_df[existing_months].sum(axis=1)
+                if existing_months
+                else 0
+            )
+
+        internal_df["total"] = internal_df[
+            "annual_total"
+        ]
+
+        required_internal_columns = [
+            "business_type",
+            "college_name",
             "vendor_name",
             "vendor_type",
             "line_of_business",
             "programme_name",
+            "mode_of_training",
             "job_code",
             "batch",
             "semester",
             "year",
+            "financial_year",
             "training_hours",
             "paper_name",
             "batch_number",
+            "annual_total",
             "total"
         ]
 
-        for column in required_columns:
-            if column not in df.columns:
-                df[column] = ""
+        for column in required_internal_columns:
+            if column not in internal_df.columns:
+                internal_df[column] = ""
 
-        # Pandas changes duplicate headers to Training hours.1 / Total.1.
-        # After normalization these become training_hours1 / total1.
-        duplicate_training_hours = next(
-            (
-                column
-                for column in [
-                    "training_hours1",
-                    "training_hours_1"
-                ]
-                if column in df.columns
-            ),
-            None
-        )
-
-        if duplicate_training_hours:
-            blank_training_hours = (
-                df["training_hours"]
-                .astype(str)
-                .str.strip()
-                .isin(
-                    [
-                        "",
-                        "nan",
-                        "None",
-                        "NaN"
-                    ]
-                )
-            )
-
-            df.loc[
-                blank_training_hours,
-                "training_hours"
-            ] = df.loc[
-                blank_training_hours,
-                duplicate_training_hours
-            ]
-
-        dynamic_month_columns = get_dynamic_month_columns(
-            df
-        )
-
-        for month_column in dynamic_month_columns:
-            df[month_column] = df[
-                month_column
-            ].apply(
-                lambda value:
-                safe_number(value, 0)
-            )
-
-        # Keep old month columns supported without converting
-        # dated columns such as Jul-26 into plain Jul.
-        for month in MONTHS:
-            if month in df.columns:
-                df[month] = df[
-                    month
-                ].apply(
-                    lambda value:
-                    safe_number(value, 0)
-                )
-
-        df["training_hours"] = df[
-            "training_hours"
-        ].apply(
-            lambda value:
-            safe_number(value, 0)
-        )
-
-        duplicate_total = next(
-            (
-                column
-                for column in [
-                    "total1",
-                    "total_1"
-                ]
-                if column in df.columns
-            ),
-            None
-        )
-
-        if duplicate_total:
-            df["annual_total"] = df[
-                duplicate_total
-            ].apply(
-                lambda value:
-                safe_number(value, 0)
-            )
-        else:
-            df["annual_total"] = df[
-                "total"
-            ].apply(
-                lambda value:
-                safe_number(value, 0)
-            )
-
-        if dynamic_month_columns:
-            calculated_total = df[
-                dynamic_month_columns
-            ].sum(
-                axis=1
-            )
-
-            df["annual_total"] = df[
-                "annual_total"
-            ].where(
-                df["annual_total"] > 0,
-                calculated_total
-            )
-
-        df["total"] = df[
-            "annual_total"
-        ]
-
-        return df.fillna("")
+        return internal_df.fillna("")
 
     except Exception as error:
         st.error(
@@ -1081,9 +1242,229 @@ def load_budget_master():
 
 
 def save_budget_master(df):
-    df.to_csv(
+    # Save budget.csv with the exact new headings and exact sequence.
+    output_columns = [
+        "Business type",
+        "Client Name",
+        "Year",
+        "Semester",
+        "Programme name",
+        "Mode of training",
+        "Paper Name",
+        "No. of batches",
+        "Training hours",
+        "Vendor type",
+        "Vendor name",
+        "Total",
+        "Year.1",
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec"
+    ]
+
+    output_rows = []
+
+    for _, row in df.fillna("").iterrows():
+        financial_year = clean_value(
+            row.get(
+                "year",
+                row.get(
+                    "financial_year",
+                    ""
+                )
+            )
+        )
+
+        canonical_fy = _canonical_financial_year(
+            financial_year
+        )
+
+        dynamic_columns = get_dynamic_month_columns(
+            pd.DataFrame([row])
+        )
+
+        calendar_years = sorted(
+            {
+                2000 + int(
+                    str(column).split("_")[-1]
+                )
+                for column in dynamic_columns
+            }
+        )
+
+        # Add College uses plain Jan-Dec + Year, so retain that flow too.
+        if not calendar_years:
+            calendar_year_match = re.search(
+                r"20\\d{2}",
+                clean_value(
+                    row.get(
+                        "calendar_year",
+                        row.get("year", "")
+                    )
+                )
+            )
+
+            if calendar_year_match:
+                calendar_years = [
+                    int(calendar_year_match.group())
+                ]
+
+            elif canonical_fy:
+                calendar_years = [
+                    int(
+                        canonical_fy.split("-")[0]
+                    )
+                ]
+
+        for calendar_year in calendar_years:
+            year_suffix = str(
+                calendar_year
+            )[-2:]
+
+            month_values = {}
+
+            for month in MONTHS:
+                dynamic_column = (
+                    f"{month}_{year_suffix}"
+                )
+
+                if dynamic_column in row.index:
+                    month_values[month] = safe_number(
+                        row.get(
+                            dynamic_column,
+                            0
+                        ),
+                        0
+                    )
+                else:
+                    month_values[month] = safe_number(
+                        row.get(
+                            month,
+                            0
+                        ),
+                        0
+                    )
+
+            calendar_total = sum(
+                month_values.values()
+            )
+
+            output_rows.append(
+                {
+                    "Business type": clean_value(
+                        row.get(
+                            "business_type",
+                            ""
+                        )
+                    ),
+
+                    "Client Name": clean_value(
+                        row.get(
+                            "college_name",
+                            row.get(
+                                "line_of_business",
+                                ""
+                            )
+                        )
+                    ),
+
+                    "Year": _financial_year_csv_label(
+                        canonical_fy
+                    ),
+
+                    "Semester": clean_value(
+                        row.get(
+                            "semester",
+                            ""
+                        )
+                    ),
+
+                    "Programme name": clean_value(
+                        row.get(
+                            "programme_name",
+                            ""
+                        )
+                    ),
+
+                    "Mode of training": clean_value(
+                        row.get(
+                            "mode_of_training",
+                            ""
+                        )
+                    ),
+
+                    "Paper Name": clean_value(
+                        row.get(
+                            "paper_name",
+                            ""
+                        )
+                    ),
+
+                    "No. of batches": clean_value(
+                        row.get(
+                            "batch",
+                            ""
+                        )
+                    ),
+
+                    "Training hours": safe_number(
+                        row.get(
+                            "training_hours",
+                            0
+                        ),
+                        0
+                    ),
+
+                    "Vendor type": clean_value(
+                        row.get(
+                            "vendor_type",
+                            ""
+                        )
+                    ),
+
+                    "Vendor name": clean_value(
+                        row.get(
+                            "vendor_name",
+                            ""
+                        )
+                    ),
+
+                    "Total": calendar_total,
+                    "Year.1": calendar_year,
+
+                    "Jan": month_values["jan"],
+                    "Feb": month_values["feb"],
+                    "Mar": month_values["mar"],
+                    "Apr": month_values["apr"],
+                    "May": month_values["may"],
+                    "Jun": month_values["jun"],
+                    "Jul": month_values["jul"],
+                    "Aug": month_values["aug"],
+                    "Sep": month_values["sep"],
+                    "Oct": month_values["oct"],
+                    "Nov": month_values["nov"],
+                    "Dec": month_values["dec"]
+                }
+            )
+
+    output_df = pd.DataFrame(
+        output_rows,
+        columns=output_columns
+    )
+
+    output_df.to_csv(
         BUDGET_MASTER_FILE,
-        index=False
+        index=False,
+        encoding="utf-8-sig"
     )
 
 
