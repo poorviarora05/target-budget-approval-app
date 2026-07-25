@@ -1285,7 +1285,7 @@ def load_budget_master():
         ]
 
         for _, source_row in df.iterrows():
-            calendar_year_text = clean_text(
+            calendar_year_text = clean_value(
                 source_row.get(
                     "calendar_year",
                     ""
