@@ -869,10 +869,10 @@ def safe_number(value):
         return 0
 
 
-def clean_text(value):
+def clean_text(value, default=""):
     try:
         if pd.isna(value):
-            return ""
+            return default
 
         value = str(value).strip()
 
@@ -881,12 +881,12 @@ def clean_text(value):
             "none",
             ""
         ]:
-            return ""
+            return default
 
         return value
 
     except:
-        return ""
+        return default
 
 
 def normalize_text(value):
