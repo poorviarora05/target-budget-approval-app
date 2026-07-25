@@ -2405,6 +2405,7 @@ def show_college_master_page():
 # BUDGET UPDATE / ADD
 # =========================================================
 
+
 def show_budget_update_tab():
     partner_banner(
         "Budget Update / Add",
@@ -2420,84 +2421,196 @@ def show_budget_update_tab():
         st.error(
             "budget.csv not found or empty."
         )
-
         return
+
+    # University selection auto-fetches the first matching CSV record.
+    university_options = get_unique_values(
+        budget_master_df,
+        "college_name"
+    )
+
+    if not university_options:
+        university_options = get_unique_values(
+            budget_master_df,
+            "line_of_business"
+        )
+
+    selected_university = st.selectbox(
+        "College / University",
+        university_options or ["Not Available"],
+        key="partner_budget_update_university"
+    )
+
+    university_rows = budget_master_df.copy()
+
+    if "college_name" in university_rows.columns:
+        university_rows = university_rows[
+            university_rows["college_name"]
+            .astype(str)
+            .apply(normalize_text)
+            == normalize_text(selected_university)
+        ]
+
+    elif "line_of_business" in university_rows.columns:
+        university_rows = university_rows[
+            university_rows["line_of_business"]
+            .astype(str)
+            .apply(normalize_text)
+            == normalize_text(selected_university)
+        ]
+
+    auto_row = (
+        university_rows.iloc[0]
+        if not university_rows.empty
+        else {}
+    )
+
+    auto_business_type = (
+        clean_value(auto_row.get("business_type", "B2I"), "B2I")
+        if len(auto_row)
+        else "B2I"
+    )
+
+    auto_line = (
+        clean_value(
+            auto_row.get(
+                "line_of_business",
+                auto_row.get("college_name", selected_university)
+            ),
+            selected_university
+        )
+        if len(auto_row)
+        else selected_university
+    )
+
+    auto_programme = (
+        clean_value(auto_row.get("programme_name", ""))
+        if len(auto_row)
+        else ""
+    )
+
+    auto_job_code = (
+        clean_value(auto_row.get("job_code", "Not Available"), "Not Available")
+        if len(auto_row)
+        else "Not Available"
+    )
+
+    auto_batch = (
+        clean_value(auto_row.get("batch", ""))
+        if len(auto_row)
+        else ""
+    )
+
+    auto_semester = (
+        clean_value(auto_row.get("semester", ""))
+        if len(auto_row)
+        else ""
+    )
+
+    auto_year = (
+        clean_value(
+            auto_row.get(
+                "year",
+                auto_row.get("financial_year", "2026-27")
+            ),
+            "2026-27"
+        )
+        if len(auto_row)
+        else "2026-27"
+    )
 
     budget_column_1, budget_column_2 = (
         st.columns(2)
     )
 
     with budget_column_1:
+        business_options = [
+            "B2C",
+            "B2I",
+            "B2B"
+        ]
+
         business_type_update = st.selectbox(
             "Business Type",
-            [
-                "B2C",
-                "B2I",
-                "B2B"
-            ],
+            business_options,
+            index=get_index(
+                business_options,
+                auto_business_type,
+                1
+            ),
             key="partner_budget_business_type"
         )
 
         line_update = select_or_add(
             "Line of Business",
             get_unique_values(
-                budget_master_df,
+                university_rows,
                 "line_of_business"
             ),
-            "partner_budget_line"
+            "partner_budget_line",
+            auto_line
         )
 
         programme_update = select_or_add(
             "Programme Name",
             get_unique_values(
-                budget_master_df,
+                university_rows,
                 "programme_name"
             ),
-            "partner_budget_programme"
+            "partner_budget_programme",
+            auto_programme
         )
 
         job_code_update = select_or_add(
             "Job Code",
             get_unique_values(
-                budget_master_df,
+                university_rows,
                 "job_code"
             ),
-            "partner_budget_job_code"
+            "partner_budget_job_code",
+            auto_job_code
         )
 
     with budget_column_2:
         batch_update = select_or_add(
             "Batch",
             get_unique_values(
-                budget_master_df,
+                university_rows,
                 "batch"
             ),
-            "partner_budget_batch"
+            "partner_budget_batch",
+            auto_batch
         )
 
         semester_update = select_or_add(
             "Semester",
             get_unique_values(
-                budget_master_df,
+                university_rows,
                 "semester"
             ),
-            "partner_budget_semester"
+            "partner_budget_semester",
+            auto_semester
         )
 
         financial_year_options = (
             get_financial_year_options(
+                university_rows
+            )
+            or get_financial_year_options(
                 budget_master_df
             )
-            or [
-                "2026-27"
-            ]
+            or ["2026-27"]
         )
 
         year_update = select_or_add(
             "Financial Year",
             financial_year_options,
             "partner_budget_year",
-            financial_year_options[0]
+            (
+                auto_year
+                if auto_year in financial_year_options
+                else financial_year_options[0]
+            )
         )
 
     financial_year_month_columns = (
@@ -2523,51 +2636,57 @@ def show_budget_update_tab():
         semester_update
     )
 
+    if "college_name" in existing_rows.columns:
+        exact_university_rows = existing_rows[
+            existing_rows["college_name"]
+            .astype(str)
+            .apply(normalize_text)
+            == normalize_text(selected_university)
+        ]
+
+        if not exact_university_rows.empty:
+            existing_rows = exact_university_rows
+
     existing_row = (
         existing_rows.iloc[0]
         if not existing_rows.empty
-        else {}
+        else auto_row
     )
 
-    details_column_1, details_column_2 = (
+    detail_column_1, detail_column_2 = (
         st.columns(2)
     )
 
-    with details_column_1:
-        training_hours_update = (
-            st.number_input(
-                "Training Hours",
-                min_value=0,
-                value=(
-                    int(
-                        safe_number(
-                            existing_row.get(
-                                "training_hours",
-                                0
-                            )
+    with detail_column_1:
+        training_hours_update = st.number_input(
+            "Training Hours",
+            min_value=0,
+            value=(
+                int(
+                    safe_number(
+                        existing_row.get(
+                            "training_hours",
+                            0
                         )
                     )
-                    if len(existing_row)
-                    else 0
-                ),
-                step=1,
-                key=(
-                    "partner_budget_"
-                    "training_hours"
                 )
-            )
+                if len(existing_row)
+                else 0
+            ),
+            step=1,
+            key="partner_budget_training_hours"
         )
 
-    with details_column_2:
+    with detail_column_2:
         paper_name_update = select_or_add(
             "Paper Name",
             get_unique_values(
-                budget_master_df,
+                university_rows,
                 "paper_name"
             ),
             "partner_budget_paper",
             (
-                clean_text(
+                clean_value(
                     existing_row.get(
                         "paper_name",
                         ""
@@ -2590,6 +2709,7 @@ def show_budget_update_tab():
 
     combination_key = normalize_text(
         (
+            f"{selected_university}_"
             f"{business_type_update}_"
             f"{line_update}_"
             f"{programme_update}_"
@@ -2627,15 +2747,16 @@ def show_budget_update_tab():
         )
 
         with month_display_columns[index % 3]:
-            month_values[month_column] = st.number_input(
-                f"{month_column_label(month_column)} Budget",
-                min_value=0,
-                value=default_month_value,
-                step=1000,
-                key=(
-                    f"partner_{month_column}_"
-                    f"budget_input_"
-                    f"{combination_key}"
+            month_values[month_column] = (
+                st.number_input(
+                    f"{month_column_label(month_column)} Budget",
+                    min_value=0,
+                    value=default_month_value,
+                    step=1000,
+                    key=(
+                        f"partner_{month_column}_budget_input_"
+                        f"{combination_key}"
+                    )
                 )
             )
 
@@ -2654,38 +2775,49 @@ def show_budget_update_tab():
         key="partner_save_budget_master_btn"
     ):
         new_budget_row = {
-            "business_type":
-                business_type_update,
-
-            "line_of_business":
-                line_update,
-
-            "programme_name":
-                programme_update,
-
-            "job_code":
-                job_code_update,
-
-            "batch":
-                batch_update,
-
-            "semester":
-                semester_update,
-
-            "year":
-                year_update,
-
-            "training_hours":
-                training_hours_update,
-
-            "paper_name":
-                paper_name_update,
-
-            "annual_total":
-                annual_total,
-
-            "total":
-                annual_total
+            "college_name": selected_university,
+            "business_type": business_type_update,
+            "line_of_business": line_update,
+            "programme_name": programme_update,
+            "job_code": job_code_update,
+            "batch": batch_update,
+            "semester": semester_update,
+            "year": year_update,
+            "financial_year": year_update,
+            "training_hours": training_hours_update,
+            "paper_name": paper_name_update,
+            "mode_of_training": (
+                clean_value(
+                    existing_row.get(
+                        "mode_of_training",
+                        ""
+                    )
+                )
+                if len(existing_row)
+                else ""
+            ),
+            "vendor_type": (
+                clean_value(
+                    existing_row.get(
+                        "vendor_type",
+                        ""
+                    )
+                )
+                if len(existing_row)
+                else ""
+            ),
+            "vendor_name": (
+                clean_value(
+                    existing_row.get(
+                        "vendor_name",
+                        ""
+                    )
+                )
+                if len(existing_row)
+                else ""
+            ),
+            "annual_total": annual_total,
+            "total": annual_total
         }
 
         for month_column in financial_year_month_columns:
@@ -2703,71 +2835,59 @@ def show_budget_update_tab():
 
         match_condition = (
             (
-                budget_master_df[
-                    "business_type"
-                ]
+                budget_master_df["business_type"]
                 .astype(str)
                 .apply(normalize_text)
-                == normalize_text(
-                    business_type_update
-                )
+                == normalize_text(business_type_update)
             )
             &
             (
-                budget_master_df[
-                    "line_of_business"
-                ]
+                budget_master_df["line_of_business"]
                 .astype(str)
                 .apply(normalize_text)
-                == normalize_text(
-                    line_update
-                )
+                == normalize_text(line_update)
             )
             &
             (
-                budget_master_df[
-                    "programme_name"
-                ]
+                budget_master_df["programme_name"]
                 .astype(str)
                 .apply(normalize_text)
-                == normalize_text(
-                    programme_update
-                )
+                == normalize_text(programme_update)
             )
             &
             (
-                budget_master_df[
-                    "job_code"
-                ]
+                budget_master_df["job_code"]
                 .astype(str)
                 .apply(normalize_text)
-                == normalize_text(
-                    job_code_update
-                )
+                == normalize_text(job_code_update)
             )
             &
             (
-                budget_master_df[
-                    "batch"
-                ]
+                budget_master_df["batch"]
                 .astype(str)
                 .apply(normalize_text)
-                == normalize_text(
-                    batch_update
-                )
+                == normalize_text(batch_update)
             )
             &
             (
-                budget_master_df[
-                    "semester"
-                ]
+                budget_master_df["semester"]
                 .astype(str)
                 .apply(normalize_text)
-                == normalize_text(
-                    semester_update
-                )
+                == normalize_text(semester_update)
             )
         )
+
+        if "college_name" in budget_master_df.columns:
+            match_condition = (
+                match_condition
+                &
+                (
+                    budget_master_df["college_name"]
+                    .astype(str)
+                    .apply(normalize_text)
+                    == normalize_text(selected_university)
+                )
+            )
 
         if (
             not budget_master_df.empty
@@ -2850,6 +2970,7 @@ def show_budget_update_tab():
         st.info(
             "Budget master updated successfully."
         )
+
 
 
 # =========================================================
