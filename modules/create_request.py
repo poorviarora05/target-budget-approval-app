@@ -793,8 +793,15 @@ def generate_request_id(college_name, business_type, requests_df):
 
 def load_budget_master():
     try:
+        df = pd.read_csv(BUDGET_MASTER_FILE, encoding="utf-8-sig")
+
+    except UnicodeDecodeError:
         df = pd.read_csv(BUDGET_MASTER_FILE, encoding="latin1")
 
+    except:
+        return pd.DataFrame()
+
+    try:
         df.columns = (
             df.columns.astype(str)
             .str.strip()
@@ -805,83 +812,71 @@ def load_budget_master():
             .str.replace("-", "_")
         )
 
+        # Exact mapping according to the final budget CSV titles.
         df.rename(
             columns={
-                "business": "business_type",
                 "business_type": "business_type",
-                "vendor_name": "vendor_name",
-                "vendor_type": "vendor_type",
-                "line_of_business": "line_of_business",
+                "client_name": "client_name",
+                "year": "financial_year",
+                "semester": "semester",
                 "programme_name": "programme_name",
-                "program_name": "programme_name",
-                "job_code": "job_code",
-                "batches": "batch",
-                "batch_number": "batch",
-                "training_hour": "training_hours",
+                "mode_of_training": "mode_of_training",
+                "paper_name": "paper_name",
+                "no_of_batches": "no_of_batches",
                 "training_hours": "training_hours",
-                "paper_name": "paper_name"
+                "vendor_type": "vendor_type",
+                "vendor_name": "vendor_name",
+                "total": "total",
+                "year1": "budget_year",
+                "jan": "jan",
+                "feb": "feb",
+                "mar": "mar",
+                "apr": "apr",
+                "may": "may",
+                "jun": "jun",
+                "jul": "jul",
+                "aug": "aug",
+                "sep": "sep",
+                "oct": "oct",
+                "nov": "nov",
+                "dec": "dec"
             },
             inplace=True
         )
 
         required_columns = [
             "business_type",
-            "vendor_name",
-            "vendor_type",
-            "line_of_business",
-            "programme_name",
-            "job_code",
-            "batch",
+            "client_name",
+            "financial_year",
             "semester",
-            "training_hours",
+            "programme_name",
+            "mode_of_training",
             "paper_name",
-            "total"
+            "no_of_batches",
+            "training_hours",
+            "vendor_type",
+            "vendor_name",
+            "total",
+            "budget_year",
+            "jan", "feb", "mar", "apr", "may", "jun",
+            "jul", "aug", "sep", "oct", "nov", "dec"
         ]
 
         for col in required_columns:
             if col not in df.columns:
                 df[col] = ""
 
-        month_columns = [
-            col for col in df.columns
-            if re.fullmatch(r"[a-z]{3}_\\d{2}", col)
+        numeric_columns = [
+            "no_of_batches",
+            "training_hours",
+            "total",
+            "budget_year",
+            "jan", "feb", "mar", "apr", "may", "jun",
+            "jul", "aug", "sep", "oct", "nov", "dec"
         ]
 
-        for month in month_columns:
-            df[month] = df[month].apply(safe_number)
-
-        # The updated Excel has duplicate "Training hours" and "Total" headers.
-        # Pandas names the second copies training_hours_1 and total_1.
-        duplicate_training_hours_col = next(
-            (
-                col for col in ["training_hours1", "training_hours_1"]
-                if col in df.columns
-            ),
-            None
-        )
-
-        if duplicate_training_hours_col:
-            df["training_hours"] = df["training_hours"].where(
-                df["training_hours"].astype(str).str.strip() != "",
-                df[duplicate_training_hours_col]
-            )
-
-        duplicate_total_col = next(
-            (
-                col for col in ["total1", "total_1"]
-                if col in df.columns
-            ),
-            None
-        )
-
-        if duplicate_total_col:
-            df["annual_total"] = df[duplicate_total_col]
-        else:
-            df["annual_total"] = df["total"]
-
-        df["training_hours"] = df["training_hours"].apply(safe_number)
-        df["total"] = df["total"].apply(safe_number)
-        df["annual_total"] = df["annual_total"].apply(safe_number)
+        for col in numeric_columns:
+            df[col] = df[col].apply(safe_number)
 
         return df.fillna("")
 
@@ -893,16 +888,37 @@ def get_unique_values(df, column):
     if column not in df.columns:
         return []
 
-    return (
+    values = (
         df[column]
         .astype(str)
         .str.strip()
         .replace("", pd.NA)
+        .replace("nan", pd.NA)
         .dropna()
         .drop_duplicates()
-        .sort_values()
         .tolist()
     )
+
+    return values
+
+
+def filter_budget_rows(df, column, selected_value):
+    if column not in df.columns or selected_value == "Not Available":
+        return df
+
+    return df[
+        df[column].astype(str).str.strip()
+        == str(selected_value).strip()
+    ]
+
+
+def display_master_value(value, number_format=False):
+    if number_format:
+        number = safe_number(value)
+        return f"{number:,.0f}"
+
+    text = clean_text(value)
+    return text if text else "Not Available"
 
 
 def save_request_to_mysql(new_request):
@@ -1014,38 +1030,95 @@ def show_create_request(username):
         unsafe_allow_html=True
     )
 
+    # =========================================================
+    # CSV TITLE ORDER STARTS HERE
+    # 1. Business type
+    # 2. Client Name
+    # 3. Year
+    # 4. Semester
+    # 5. Programme name
+    # 6. Mode of training
+    # 7. Paper Name
+    # 8. No. of batches
+    # 9. Training hours
+    # 10. Vendor type
+    # 11. Vendor name
+    # 12. Total
+    # 13. Year.1
+    # 14-25. Jan to Dec
+    # =========================================================
+
+    filtered_df = budget_df.copy()
+
     c1, c2, c3 = st.columns(3)
 
     with c1:
-        college_options = get_unique_values(
-            budget_df,
-            "line_of_business"
+        business_options = get_unique_values(
+            filtered_df,
+            "business_type"
         )
 
-        college_name = st.selectbox(
-            "College / University",
-            college_options
-            if college_options
+        business_type = st.selectbox(
+            "Business Type",
+            business_options
+            if business_options
             else ["Not Available"]
         )
 
+    filtered_df = filter_budget_rows(
+        filtered_df,
+        "business_type",
+        business_type
+    )
+
     with c2:
-        business_type = st.selectbox(
-            "Business Type",
-            ["B2C", "B2I", "B2B"]
+        client_options = get_unique_values(
+            filtered_df,
+            "client_name"
         )
+
+        client_name = st.selectbox(
+            "Client Name",
+            client_options
+            if client_options
+            else ["Not Available"]
+        )
+
+    filtered_df = filter_budget_rows(
+        filtered_df,
+        "client_name",
+        client_name
+    )
 
     with c3:
-        preview_request_id = generate_request_id(
-            college_name,
-            business_type,
-            requests_df
+        financial_year_options = get_unique_values(
+            filtered_df,
+            "financial_year"
         )
 
-        info_card(
-            "Generated Request ID",
-            preview_request_id
+        financial_year = st.selectbox(
+            "Year",
+            financial_year_options
+            if financial_year_options
+            else ["Not Available"]
         )
+
+    filtered_df = filter_budget_rows(
+        filtered_df,
+        "financial_year",
+        financial_year
+    )
+
+    preview_request_id = generate_request_id(
+        client_name,
+        business_type,
+        requests_df
+    )
+
+    info_card(
+        "Generated Request ID",
+        preview_request_id
+    )
 
     st.markdown(
         '<div class="section-title">Program Details</div>',
@@ -1061,41 +1134,26 @@ def show_create_request(username):
         unsafe_allow_html=True
     )
 
-    filtered_df = budget_df.copy()
-
-    if "line_of_business" in filtered_df.columns:
-        filtered_df = filtered_df[
-            filtered_df["line_of_business"]
-            .astype(str)
-            .str.strip() == college_name
-        ]
-
-    if "business_type" in filtered_df.columns:
-        filtered_df = filtered_df[
-            filtered_df["business_type"]
-            .astype(str)
-            .str.strip() == business_type
-        ]
-
-    p1, p2 = st.columns(2)
+    p1, p2, p3 = st.columns(3)
 
     with p1:
-        line_options = get_unique_values(
+        semester_options = get_unique_values(
             filtered_df,
-            "line_of_business"
+            "semester"
         )
 
-        line_of_business = st.selectbox(
-            "Line of Business",
-            line_options if line_options else ["Not Available"]
+        semester = st.selectbox(
+            "Semester",
+            semester_options
+            if semester_options
+            else ["Not Available"]
         )
 
-    if "line_of_business" in filtered_df.columns:
-        filtered_df = filtered_df[
-            filtered_df["line_of_business"]
-            .astype(str)
-            .str.strip() == line_of_business
-        ]
+    filtered_df = filter_budget_rows(
+        filtered_df,
+        "semester",
+        semester
+    )
 
     with p2:
         programme_options = get_unique_values(
@@ -1110,80 +1168,70 @@ def show_create_request(username):
             else ["Not Available"]
         )
 
-    if "programme_name" in filtered_df.columns:
-        filtered_df = filtered_df[
-            filtered_df["programme_name"]
-            .astype(str)
-            .str.strip() == programme_name
-        ]
-
-    p3, p4, p5 = st.columns(3)
+    filtered_df = filter_budget_rows(
+        filtered_df,
+        "programme_name",
+        programme_name
+    )
 
     with p3:
-        job_code_options = get_unique_values(
+        mode_options = get_unique_values(
             filtered_df,
-            "job_code"
+            "mode_of_training"
         )
 
-        job_code = st.selectbox(
-            "Job Code",
-            job_code_options
-            if job_code_options
+        mode_of_training = st.selectbox(
+            "Mode of Training",
+            mode_options
+            if mode_options
             else ["Not Available"]
         )
 
-    if "job_code" in filtered_df.columns:
-        filtered_df = filtered_df[
-            filtered_df["job_code"]
-            .astype(str)
-            .str.strip() == job_code
-        ]
+    filtered_df = filter_budget_rows(
+        filtered_df,
+        "mode_of_training",
+        mode_of_training
+    )
+
+    p4, p5 = st.columns(2)
 
     with p4:
-        batch_options = get_unique_values(
+        paper_options = get_unique_values(
             filtered_df,
-            "batch"
+            "paper_name"
         )
 
-        batch = st.selectbox(
-            "Batch",
+        paper_name = st.selectbox(
+            "Paper Name",
+            paper_options
+            if paper_options
+            else ["Not Available"]
+        )
+
+    filtered_df = filter_budget_rows(
+        filtered_df,
+        "paper_name",
+        paper_name
+    )
+
+    with p5:
+        batch_options = get_unique_values(
+            filtered_df,
+            "no_of_batches"
+        )
+
+        no_of_batches = st.selectbox(
+            "No. of Batches",
             batch_options
             if batch_options
             else ["Not Available"]
         )
 
-    if (
-        "batch" in filtered_df.columns
-        and batch != "Not Available"
-    ):
-        filtered_df = filtered_df[
-            filtered_df["batch"]
-            .astype(str)
-            .str.strip() == batch
-        ]
-
-    with p5:
-        semester_options = get_unique_values(
-            filtered_df,
-            "semester"
-        )
-
-        semester = st.selectbox(
-            "Semester",
-            semester_options
-            if semester_options
-            else ["Not Available"]
-        )
-
-    if (
-        "semester" in filtered_df.columns
-        and semester != "Not Available"
-    ):
-        filtered_df = filtered_df[
-            filtered_df["semester"]
-            .astype(str)
-            .str.strip() == semester
-        ]
+    filtered_df = filter_budget_rows(
+        filtered_df,
+        "no_of_batches",
+        no_of_batches
+    )
 
     selected_master = (
         filtered_df.iloc[0]
@@ -1202,10 +1250,21 @@ def show_create_request(username):
         else 0
     )
 
-    paper_name = (
-        str(
+    vendor_type = (
+        clean_text(
             selected_master.get(
-                "paper_name",
+                "vendor_type",
+                ""
+            )
+        )
+        if len(selected_master)
+        else ""
+    )
+
+    vendor_name = (
+        clean_text(
+            selected_master.get(
+                "vendor_name",
                 ""
             )
         )
@@ -1216,13 +1275,71 @@ def show_create_request(username):
     total_cost_from_master = (
         safe_number(
             selected_master.get(
-                "annual_total",
+                "total",
                 0
             )
         )
         if len(selected_master)
         else 0
     )
+
+    budget_year = (
+        safe_number(
+            selected_master.get(
+                "budget_year",
+                0
+            )
+        )
+        if len(selected_master)
+        else 0
+    )
+
+    st.markdown(
+        """
+        <div class="section-title">
+            Auto-Fetched Training & Budget Details
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    m1, m2, m3, m4, m5 = st.columns(5)
+
+    with m1:
+        st.metric(
+            "Training Hours",
+            f"{training_hours_from_master:,.0f}"
+        )
+
+    with m2:
+        info_card(
+            "Vendor Type",
+            vendor_type
+            if vendor_type
+            else "Not Available"
+        )
+
+    with m3:
+        info_card(
+            "Vendor Name",
+            vendor_name
+            if vendor_name
+            else "Not Available"
+        )
+
+    with m4:
+        st.metric(
+            "Total",
+            f"₹{total_cost_from_master:,.0f}"
+        )
+
+    with m5:
+        st.metric(
+            "Year.1",
+            f"{budget_year:,.0f}"
+            if budget_year
+            else "Not Available"
+        )
 
     st.markdown(
         '<div class="section-title">Request Timeline</div>',
@@ -1261,11 +1378,11 @@ def show_create_request(username):
         )
 
     selected_month_col = start_date.strftime(
-        "%b_%y"
+        "%b"
     ).lower()
 
     selected_month_name = start_date.strftime(
-        "%b-%y"
+        "%b"
     ).upper()
 
     monthly_budget_from_master = (
@@ -1280,38 +1397,15 @@ def show_create_request(username):
         else 0
     )
 
-    st.markdown(
-        """
-        <div class="section-title">
-            Auto-Fetched Training & Budget Details
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    month1, month2 = st.columns(2)
 
-    m1, m2, m3, m4 = st.columns(4)
-
-    with m1:
-        st.metric(
-            "Training Hours",
-            f"{training_hours_from_master:,.0f}"
-        )
-
-    with m2:
-        info_card(
-            "Paper Name",
-            paper_name
-            if paper_name
-            else "Not Available"
-        )
-
-    with m3:
+    with month1:
         st.metric(
             f"{selected_month_name} Monthly Budget",
             f"₹{monthly_budget_from_master:,.0f}"
         )
 
-    with m4:
+    with month2:
         st.metric(
             "Annual Total",
             f"₹{total_cost_from_master:,.0f}"
@@ -1520,7 +1614,7 @@ def show_create_request(username):
     ):
 
         request_id = generate_request_id(
-            college_name,
+            client_name,
             business_type,
             requests_df
         )
@@ -1528,19 +1622,30 @@ def show_create_request(username):
         new_request = {
             "request_id": request_id,
             "created_by": username,
-            "college_name": college_name,
+            "college_name": client_name,
+            "client_name": client_name,
             "request_date": str(current_date),
             "business_type": business_type,
-            "line_of_business": line_of_business,
-            "programme_name": programme_name,
-            "job_code": job_code,
-            "batch": batch,
+            "year": financial_year,
+            "financial_year": financial_year,
             "semester": semester,
-            "training_hours_from_master": training_hours_from_master,
+            "programme_name": programme_name,
+            "mode_of_training": mode_of_training,
             "paper_name": paper_name,
+            "no_of_batches": no_of_batches,
+            "training_hours_from_master": training_hours_from_master,
+            "vendor_type": vendor_type,
+            "vendor_name": vendor_name,
             "master_total_cost": total_cost_from_master,
+            "budget_year": int(budget_year) if budget_year else "",
             "monthly_budget": monthly_budget_from_master,
             "budget_month": selected_month_col,
+
+            # Legacy database keys retained so existing MySQL insert keeps working.
+            "line_of_business": client_name,
+            "job_code": financial_year,
+            "batch": no_of_batches,
+
             "start_date": str(start_date),
             "end_date": str(end_date),
             "training_days": total_training_days,
@@ -1587,7 +1692,7 @@ def show_create_request(username):
             f"""
 Request ID: {request_id}
 
-College: {college_name}
+College: {client_name}
 
 Training Topic: {training_topic}
 
