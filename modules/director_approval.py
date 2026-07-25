@@ -2507,13 +2507,13 @@ def show_budget_update_tab():
     )
 
     auto_business_type = (
-        clean_value(auto_row.get("business_type", "B2I"), "B2I")
+        clean_text(auto_row.get("business_type", "B2I"), "B2I")
         if len(auto_row)
         else "B2I"
     )
 
     auto_line = (
-        clean_value(
+        clean_text(
             auto_row.get(
                 "line_of_business",
                 auto_row.get("college_name", selected_university)
@@ -2525,31 +2525,31 @@ def show_budget_update_tab():
     )
 
     auto_programme = (
-        clean_value(auto_row.get("programme_name", ""))
+        clean_text(auto_row.get("programme_name", ""))
         if len(auto_row)
         else ""
     )
 
     auto_job_code = (
-        clean_value(auto_row.get("job_code", "Not Available"), "Not Available")
+        clean_text(auto_row.get("job_code", "Not Available"), "Not Available")
         if len(auto_row)
         else "Not Available"
     )
 
     auto_batch = (
-        clean_value(auto_row.get("batch", ""))
+        clean_text(auto_row.get("batch", ""))
         if len(auto_row)
         else ""
     )
 
     auto_semester = (
-        clean_value(auto_row.get("semester", ""))
+        clean_text(auto_row.get("semester", ""))
         if len(auto_row)
         else ""
     )
 
     auto_year = (
-        clean_value(
+        clean_text(
             auto_row.get(
                 "year",
                 auto_row.get("financial_year", "2026-27")
@@ -2727,7 +2727,7 @@ def show_budget_update_tab():
             ),
             "partner_budget_paper",
             (
-                clean_value(
+                clean_text(
                     existing_row.get(
                         "paper_name",
                         ""
@@ -2828,7 +2828,7 @@ def show_budget_update_tab():
             "training_hours": training_hours_update,
             "paper_name": paper_name_update,
             "mode_of_training": (
-                clean_value(
+                clean_text(
                     existing_row.get(
                         "mode_of_training",
                         ""
@@ -2838,7 +2838,7 @@ def show_budget_update_tab():
                 else ""
             ),
             "vendor_type": (
-                clean_value(
+                clean_text(
                     existing_row.get(
                         "vendor_type",
                         ""
@@ -2848,7 +2848,7 @@ def show_budget_update_tab():
                 else ""
             ),
             "vendor_name": (
-                clean_value(
+                clean_text(
                     existing_row.get(
                         "vendor_name",
                         ""
