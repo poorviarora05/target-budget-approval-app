@@ -911,13 +911,90 @@ def filter_df(df, column, value):
 
 def get_exact_budget_row(
     df,
+    selected_college,
     business_type,
     programme_name,
     job_code,
     batch,
     semester,
+    selected_year=None,
 ):
     filtered = df.copy()
+
+    filtered = filter_df(
+        filtered,
+        "line_of_business",
+        selected_college,
+    )
+
+    filtered = filter_df(
+        filtered,
+        "business_type",
+        business_type,
+    )
+
+    filtered = filter_df(
+        filtered,
+        "programme_name",
+        programme_name,
+    )
+
+    filtered = filter_df(
+        filtered,
+        "job_code",
+        job_code,
+    )
+
+    filtered = filter_df(
+        filtered,
+        "batch",
+        batch,
+    )
+
+    filtered = filter_df(
+        filtered,
+        "semester",
+        semester,
+    )
+
+    if (
+        selected_year is not None
+        and "year" in filtered.columns
+    ):
+        year_filtered = filtered[
+            filtered["year"]
+            .astype(str)
+            .str.extract(r"(20\d{2})", expand=False)
+            .fillna("")
+            == str(selected_year)
+        ]
+
+        if not year_filtered.empty:
+            filtered = year_filtered
+
+    if filtered.empty:
+        return pd.Series(dtype="object")
+
+    return filtered.iloc[0]
+
+
+def get_financial_year_budget(
+    df,
+    selected_college,
+    business_type,
+    programme_name,
+    job_code,
+    batch,
+    semester,
+    financial_year_start,
+):
+    filtered = df.copy()
+
+    filtered = filter_df(
+        filtered,
+        "line_of_business",
+        selected_college,
+    )
 
     filtered = filter_df(
         filtered,
@@ -950,9 +1027,44 @@ def get_exact_budget_row(
     )
 
     if filtered.empty:
-        return pd.Series(dtype="object")
+        return 0
 
-    return filtered.iloc[0]
+    current_year_rows = filtered[
+        filtered["year"]
+        .astype(str)
+        .str.extract(r"(20\d{2})", expand=False)
+        .fillna("")
+        == str(financial_year_start)
+    ]
+
+    next_year_rows = filtered[
+        filtered["year"]
+        .astype(str)
+        .str.extract(r"(20\d{2})", expand=False)
+        .fillna("")
+        == str(financial_year_start + 1)
+    ]
+
+    total = 0
+
+    for month in [
+        "apr", "may", "jun", "jul", "aug",
+        "sep", "oct", "nov", "dec",
+    ]:
+        if month in current_year_rows.columns:
+            total += current_year_rows[
+                month
+            ].apply(safe_number).sum()
+
+    for month in [
+        "jan", "feb", "mar",
+    ]:
+        if month in next_year_rows.columns:
+            total += next_year_rows[
+                month
+            ].apply(safe_number).sum()
+
+    return total
 
 
 def get_month_budget(selected_row, month_number):
@@ -1345,9 +1457,17 @@ def show_business_year_summary(
         filtered_budget = filtered_budget[
             filtered_budget["year"]
             .astype(str)
-            .str.strip()
+            .str.extract(r"(20\\d{2})", expand=False)
+            .fillna("")
             == str(selected_year)
         ]
+
+    if selected_college != "ALL":
+        filtered_budget = filter_df(
+            filtered_budget,
+            "line_of_business",
+            selected_college,
+        )
 
     filtered_trainings = [
         training
@@ -2124,27 +2244,16 @@ def show_budget_calendar():
         )
 
         with budget_filter_1:
-            college_options = []
+            college_source_df = filter_df(
+                budget_df,
+                "business_type",
+                business_type,
+            )
 
-            try:
-                request_df = pd.read_csv(
-                    REQUESTS_FILE
-                ).fillna("")
-
-                if "college_name" in request_df.columns:
-                    college_options = (
-                        request_df["college_name"]
-                        .astype(str)
-                        .str.strip()
-                        .replace("", pd.NA)
-                        .dropna()
-                        .drop_duplicates()
-                        .sort_values()
-                        .tolist()
-                    )
-
-            except Exception:
-                pass
+            college_options = get_unique_values(
+                college_source_df,
+                "line_of_business",
+            )
 
             if not college_options:
                 college_options = [
@@ -2161,6 +2270,12 @@ def show_budget_calendar():
             budget_df,
             "business_type",
             business_type,
+        )
+
+        filtered_df = filter_df(
+            filtered_df,
+            "line_of_business",
+            selected_college,
         )
 
         with budget_filter_2:
@@ -2243,11 +2358,13 @@ def show_budget_calendar():
 
     selected_row = get_exact_budget_row(
         budget_df,
+        selected_college,
         business_type,
         programme_name,
         job_code,
         batch,
         semester,
+        selected_year,
     )
 
     month_budget = get_month_budget(
@@ -2355,21 +2472,10 @@ def show_budget_calendar():
 
         college_budget_options = [
             "ALL"
-        ]
-
-        for training in summary_trainings:
-            college_name = training[
-                "college_name"
-            ]
-
-            if (
-                college_name
-                and college_name
-                not in college_budget_options
-            ):
-                college_budget_options.append(
-                    college_name
-                )
+        ] + get_unique_values(
+            budget_df,
+            "line_of_business",
+        )
 
         college_filter_1, college_filter_2, college_filter_3 = (
             st.columns(3)
@@ -2564,8 +2670,15 @@ def show_budget_calendar():
                     )
                 )
 
-            total_budget = get_yearly_budget(
-                selected_row
+            total_budget = get_financial_year_budget(
+                budget_df,
+                selected_college,
+                business_type,
+                programme_name,
+                job_code,
+                batch,
+                semester,
+                financial_year_start,
             )
 
             exhausted_year = get_yearly_exhausted(
