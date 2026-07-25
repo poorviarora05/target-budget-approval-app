@@ -766,7 +766,6 @@ def load_budget_master():
             encoding="latin1",
         )
 
-        # Keep the UI unchanged; only normalize the new budget.csv headings.
         df.columns = (
             df.columns
             .astype(str)
@@ -793,20 +792,26 @@ def load_budget_master():
                 "training_hours": "training_hours",
                 "vendor_type": "vendor_type",
                 "vendor_name": "vendor_name",
-
-                # First Year column contains FY26-27.
                 "year": "financial_year",
-
-                # Second duplicate Year heading becomes Year.1 in pandas,
-                # then year1 after normalization.
                 "year1": "year",
 
-                # Backward-compatible old headings
+                # Old CSV headings
                 "business": "business_type",
+                "lineofbusiness": "line_of_business",
                 "line_of_business": "line_of_business",
+                "programme": "programme_name",
+                "program": "programme_name",
+                "jobcode": "job_code",
                 "job_code": "job_code",
                 "batches": "batch",
                 "batch_number": "batch",
+                "sem": "semester",
+                "semester": "semester",
+                "paper": "paper_name",
+                "total_budget": "total",
+                "annual_total": "total",
+                "grand_total": "total",
+
                 "january": "jan",
                 "february": "feb",
                 "march": "mar",
@@ -838,14 +843,108 @@ def load_budget_master():
             "vendor_type",
             "vendor_name",
             "total",
-        ] + list(MONTHS.values())
+        ]
 
         for column in required_columns:
             if column not in df.columns:
                 df[column] = ""
 
-        # New CSV has no separate Job Code title.
-        # Keep the existing dropdown/UI working without changing the UI.
+        # Support duplicate old headers
+        duplicate_training_hours = next(
+            (
+                column
+                for column in [
+                    "training_hours1",
+                    "training_hours_1"
+                ]
+                if column in df.columns
+            ),
+            None
+        )
+
+        if duplicate_training_hours:
+            blank_hours = (
+                df["training_hours"]
+                .astype(str)
+                .str.strip()
+                .isin(["", "nan", "None", "NaN"])
+            )
+
+            df.loc[
+                blank_hours,
+                "training_hours"
+            ] = df.loc[
+                blank_hours,
+                duplicate_training_hours
+            ]
+
+        duplicate_total = next(
+            (
+                column
+                for column in [
+                    "total1",
+                    "total_1"
+                ]
+                if column in df.columns
+            ),
+            None
+        )
+
+        # Convert all old dated month columns such as Apr-26 -> apr_26
+        dated_month_columns = [
+            column
+            for column in df.columns
+            if re.fullmatch(
+                r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)_\d{2}",
+                str(column)
+            )
+        ]
+
+        for column in dated_month_columns:
+            df[column] = df[column].apply(
+                safe_number
+            )
+
+        # New CSV plain month columns
+        for month in MONTHS.values():
+            if month not in df.columns:
+                df[month] = 0
+
+            df[month] = df[month].apply(
+                safe_number
+            )
+
+        df["training_hours"] = df[
+            "training_hours"
+        ].apply(safe_number)
+
+        if duplicate_total:
+            df["total"] = df[
+                duplicate_total
+            ].apply(safe_number)
+
+        else:
+            df["total"] = df[
+                "total"
+            ].apply(safe_number)
+
+        if dated_month_columns:
+            calculated_total = df[
+                dated_month_columns
+            ].sum(axis=1)
+
+            df["total"] = df[
+                "total"
+            ].where(
+                df["total"] > 0,
+                calculated_total
+            )
+
+            # Old CSV has no separate Year / Year.1 columns.
+            # Keep FY based on the dated month columns.
+            if not df["financial_year"].astype(str).str.strip().ne("").any():
+                df["financial_year"] = "FY26-27"
+
         df["job_code"] = (
             df["job_code"]
             .astype(str)
@@ -853,20 +952,10 @@ def load_budget_master():
             .replace("", "Not Available")
         )
 
-        for month in MONTHS.values():
-            df[month] = df[month].apply(
-                safe_number
-            )
-
-        df["total"] = df["total"].apply(
-            safe_number
-        )
-
-        # Keep only numeric calendar year from the second Year column.
         extracted_year = (
             df["year"]
             .astype(str)
-            .str.extract(r"(20\\d{2})", expand=False)
+            .str.extract(r"(20\d{2})", expand=False)
         )
 
         df["year"] = extracted_year.fillna("")
@@ -1029,6 +1118,40 @@ def get_financial_year_budget(
     if filtered.empty:
         return 0
 
+    total = 0
+
+    # Old CSV format: Apr-26 ... Mar-27
+    for month in [
+        "apr", "may", "jun", "jul", "aug",
+        "sep", "oct", "nov", "dec",
+    ]:
+        column = (
+            f"{month}_"
+            f"{str(financial_year_start)[-2:]}"
+        )
+
+        if column in filtered.columns:
+            total += filtered[
+                column
+            ].apply(safe_number).sum()
+
+    for month in [
+        "jan", "feb", "mar",
+    ]:
+        column = (
+            f"{month}_"
+            f"{str(financial_year_start + 1)[-2:]}"
+        )
+
+        if column in filtered.columns:
+            total += filtered[
+                column
+            ].apply(safe_number).sum()
+
+    if total > 0:
+        return total
+
+    # New CSV format: Year.1 + Jan-Dec
     current_year_rows = filtered[
         filtered["year"]
         .astype(str)
@@ -1044,8 +1167,6 @@ def get_financial_year_budget(
         .fillna("")
         == str(financial_year_start + 1)
     ]
-
-    total = 0
 
     for month in [
         "apr", "may", "jun", "jul", "aug",
@@ -1067,7 +1188,11 @@ def get_financial_year_budget(
     return total
 
 
-def get_month_budget(selected_row, month_number):
+def get_month_budget(
+    selected_row,
+    month_number,
+    selected_year=None,
+):
     month_column = MONTHS.get(
         month_number
     )
@@ -1075,11 +1200,80 @@ def get_month_budget(selected_row, month_number):
     if selected_row.empty or not month_column:
         return 0
 
+    if selected_year is not None:
+        dated_column = (
+            f"{month_column}_"
+            f"{str(selected_year)[-2:]}"
+        )
+
+        if dated_column in selected_row.index:
+            return safe_number(
+                selected_row.get(
+                    dated_column,
+                    0,
+                )
+            )
+
     return safe_number(
         selected_row.get(
             month_column,
             0,
         )
+    )
+
+
+def get_calendar_year_budget(
+    df,
+    selected_year,
+    selected_college="ALL",
+    selected_business_type="ALL",
+):
+    filtered = df.copy()
+
+    if selected_college != "ALL":
+        filtered = filter_df(
+            filtered,
+            "line_of_business",
+            selected_college,
+        )
+
+    if selected_business_type != "ALL":
+        filtered = filter_df(
+            filtered,
+            "business_type",
+            selected_business_type,
+        )
+
+    dated_columns = [
+        f"{month}_{str(selected_year)[-2:]}"
+        for month in MONTHS.values()
+        if f"{month}_{str(selected_year)[-2:]}"
+        in filtered.columns
+    ]
+
+    if dated_columns:
+        return sum(
+            filtered[column]
+            .apply(safe_number)
+            .sum()
+            for column in dated_columns
+        )
+
+    if "year" in filtered.columns:
+        filtered = filtered[
+            filtered["year"]
+            .astype(str)
+            .str.extract(r"(20\d{2})", expand=False)
+            .fillna("")
+            == str(selected_year)
+        ]
+
+    return sum(
+        filtered[month]
+        .apply(safe_number)
+        .sum()
+        for month in MONTHS.values()
+        if month in filtered.columns
     )
 
 
@@ -1500,12 +1694,11 @@ def show_business_year_summary(
             )
         ]
 
-    total_budget = (
-        filtered_budget["total"]
-        .apply(safe_number)
-        .sum()
-        if "total" in filtered_budget.columns
-        else 0
+    total_budget = get_calendar_year_budget(
+        budget_df,
+        selected_year,
+        selected_college,
+        selected_business_type,
     )
 
     consumed = sum(
@@ -2244,11 +2437,7 @@ def show_budget_calendar():
         )
 
         with budget_filter_1:
-            college_source_df = filter_df(
-                budget_df,
-                "business_type",
-                business_type,
-            )
+            college_source_df = budget_df.copy()
 
             college_options = get_unique_values(
                 college_source_df,
@@ -2268,15 +2457,18 @@ def show_budget_calendar():
 
         filtered_df = filter_df(
             budget_df,
+            "line_of_business",
+            selected_college,
+        )
+
+        business_filtered_df = filter_df(
+            filtered_df,
             "business_type",
             business_type,
         )
 
-        filtered_df = filter_df(
-            filtered_df,
-            "line_of_business",
-            selected_college,
-        )
+        if not business_filtered_df.empty:
+            filtered_df = business_filtered_df
 
         with budget_filter_2:
             programme_name = st.selectbox(
@@ -2370,6 +2562,7 @@ def show_budget_calendar():
     month_budget = get_month_budget(
         selected_row,
         selected_month,
+        selected_year,
     )
 
     trainings = get_approved_trainings(
