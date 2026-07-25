@@ -765,6 +765,7 @@ def load_budget_master():
             encoding="latin1",
         )
 
+        # Keep the UI unchanged; only normalize the new budget.csv headings.
         df.columns = (
             df.columns
             .astype(str)
@@ -778,16 +779,33 @@ def load_budget_master():
 
         df.rename(
             columns={
-                "business": "business_type",
+                # New CSV headings
                 "business_type": "business_type",
-                "line_of_business": "line_of_business",
+                "client_name": "line_of_business",
                 "programme_name": "programme_name",
                 "program_name": "programme_name",
-                "job_code": "job_code",
+                "mode_of_training": "mode_of_training",
+                "paper_name": "paper_name",
+                "no_of_batches": "batch",
+                "number_of_batches": "batch",
                 "training_hour": "training_hours",
                 "training_hours": "training_hours",
-                "paper_name": "paper_name",
-                "batch_number": "batch_number",
+                "vendor_type": "vendor_type",
+                "vendor_name": "vendor_name",
+
+                # First Year column contains FY26-27.
+                "year": "financial_year",
+
+                # Second duplicate Year heading becomes Year.1 in pandas,
+                # then year1 after normalization.
+                "year1": "year",
+
+                # Backward-compatible old headings
+                "business": "business_type",
+                "line_of_business": "line_of_business",
+                "job_code": "job_code",
+                "batches": "batch",
+                "batch_number": "batch",
                 "january": "jan",
                 "february": "feb",
                 "march": "mar",
@@ -811,15 +829,28 @@ def load_budget_master():
             "job_code",
             "batch",
             "semester",
+            "financial_year",
             "year",
+            "mode_of_training",
             "training_hours",
             "paper_name",
+            "vendor_type",
+            "vendor_name",
             "total",
         ] + list(MONTHS.values())
 
         for column in required_columns:
             if column not in df.columns:
                 df[column] = ""
+
+        # New CSV has no separate Job Code title.
+        # Keep the existing dropdown/UI working without changing the UI.
+        df["job_code"] = (
+            df["job_code"]
+            .astype(str)
+            .str.strip()
+            .replace("", "Not Available")
+        )
 
         for month in MONTHS.values():
             df[month] = df[month].apply(
@@ -829,6 +860,15 @@ def load_budget_master():
         df["total"] = df["total"].apply(
             safe_number
         )
+
+        # Keep only numeric calendar year from the second Year column.
+        extracted_year = (
+            df["year"]
+            .astype(str)
+            .str.extract(r"(20\\d{2})", expand=False)
+        )
+
+        df["year"] = extracted_year.fillna("")
 
         return df.fillna("")
 
@@ -2392,10 +2432,20 @@ def show_budget_calendar():
                 key="calendar_budget_year",
             )
 
-        selected_budget_year = int(
-            float(
-                selected_budget_year
-            )
+        # Accept 2026, 2026.0 or FY26-27 without changing UI.
+        selected_budget_year_text = clean_text(
+            selected_budget_year
+        )
+
+        selected_budget_year_match = re.search(
+            r"20\\d{2}",
+            selected_budget_year_text,
+        )
+
+        selected_budget_year = (
+            int(selected_budget_year_match.group())
+            if selected_budget_year_match
+            else selected_year
         )
 
         show_business_year_summary(
