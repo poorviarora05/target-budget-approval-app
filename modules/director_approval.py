@@ -1485,13 +1485,31 @@ def load_budget_master():
 
         internal_df = pd.DataFrame(
             internal_rows
-        ).fillna("")
+        )
 
         dynamic_month_columns = (
             get_dynamic_month_columns(
                 internal_df
             )
         )
+
+        # Keep month columns strictly numeric before groupby aggregation.
+        # Missing months from the other calendar-year row must be 0,
+        # otherwise pandas tries to add float and string values.
+        for month_column in dynamic_month_columns:
+            internal_df[month_column] = (
+                internal_df[month_column]
+                .apply(safe_number)
+            )
+
+        for month in MONTHS:
+            if month in internal_df.columns:
+                internal_df[month] = (
+                    internal_df[month]
+                    .apply(safe_number)
+                )
+
+        internal_df = internal_df.fillna("")
 
         grouping_columns = [
             column
