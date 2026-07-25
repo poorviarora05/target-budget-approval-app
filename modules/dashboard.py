@@ -888,6 +888,7 @@ def load_budget_master():
             encoding="latin1",
         ).fillna("")
 
+        # UI is unchanged. Only the new budget.csv headings are normalized here.
         df.columns = (
             df.columns
             .astype(str)
@@ -901,6 +902,32 @@ def load_budget_master():
 
         df.rename(
             columns={
+                # New CSV headings
+                "business_type": "business_type",
+                "client_name": "line_of_business",
+                "programme_name": "programme_name",
+                "program_name": "programme_name",
+                "mode_of_training": "mode_of_training",
+                "paper_name": "paper_name",
+                "no_of_batches": "batch",
+                "number_of_batches": "batch",
+                "training_hour": "training_hours",
+                "training_hours": "training_hours",
+                "vendor_type": "vendor_type",
+                "vendor_name": "vendor_name",
+
+                # First Year column contains FY26-27.
+                "year": "financial_year",
+
+                # Second duplicate Year heading is read by pandas as Year.1,
+                # which becomes year1 after normalization.
+                "year1": "year",
+
+                # Existing/backward-compatible aliases
+                "business": "business_type",
+                "line_of_business": "line_of_business",
+                "batches": "batch",
+                "batch_number": "batch",
                 "january": "jan",
                 "february": "feb",
                 "march": "mar",
@@ -920,15 +947,45 @@ def load_budget_master():
             inplace=True,
         )
 
-        for month in MONTHS.values():
-            if month not in df.columns:
-                df[month] = 0
+        required_columns = [
+            "business_type",
+            "line_of_business",
+            "financial_year",
+            "year",
+            "semester",
+            "programme_name",
+            "mode_of_training",
+            "paper_name",
+            "batch",
+            "training_hours",
+            "vendor_type",
+            "vendor_name",
+            "total",
+        ] + list(MONTHS.values())
 
+        for column in required_columns:
+            if column not in df.columns:
+                df[column] = ""
+
+        for month in MONTHS.values():
             df[month] = df[month].apply(
                 safe_number
             )
 
-        return df
+        df["total"] = df["total"].apply(
+            safe_number
+        )
+
+        # Keep only the numeric calendar year from the second Year column.
+        extracted_year = (
+            df["year"]
+            .astype(str)
+            .str.extract(r"(20\\d{2})", expand=False)
+        )
+
+        df["year"] = extracted_year.fillna("")
+
+        return df.fillna("")
 
     except Exception:
         return pd.DataFrame()
