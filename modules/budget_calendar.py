@@ -998,6 +998,61 @@ def filter_df(df, column, value):
     ]
 
 
+def get_matching_budget_rows(
+    df,
+    selected_college,
+    business_type,
+    programme_name,
+    job_code,
+    batch,
+    semester,
+):
+    filtered = df.copy()
+
+    filters = [
+        ("line_of_business", selected_college),
+        ("business_type", business_type),
+        ("programme_name", programme_name),
+        ("batch", batch),
+        ("semester", semester),
+    ]
+
+    # Job Code does not exist in the new CSV.
+    # Do not block matching when UI shows Not Available.
+    if (
+        clean_text(job_code)
+        and normalize(job_code)
+        not in [
+            normalize("Not Available"),
+            normalize("N/A"),
+        ]
+    ):
+        filters.append(
+            ("job_code", job_code)
+        )
+
+    for column, value in filters:
+        if (
+            column in filtered.columns
+            and clean_text(value)
+            and normalize(value)
+            not in [
+                normalize("Not Available"),
+                normalize("N/A"),
+            ]
+        ):
+            exact = filter_df(
+                filtered,
+                column,
+                value,
+            )
+
+            if not exact.empty:
+                filtered = exact
+
+    return filtered
+
+
 def get_exact_budget_row(
     df,
     selected_college,
@@ -1008,41 +1063,13 @@ def get_exact_budget_row(
     semester,
     selected_year=None,
 ):
-    filtered = df.copy()
-
-    filtered = filter_df(
-        filtered,
-        "line_of_business",
+    filtered = get_matching_budget_rows(
+        df,
         selected_college,
-    )
-
-    filtered = filter_df(
-        filtered,
-        "business_type",
         business_type,
-    )
-
-    filtered = filter_df(
-        filtered,
-        "programme_name",
         programme_name,
-    )
-
-    filtered = filter_df(
-        filtered,
-        "job_code",
         job_code,
-    )
-
-    filtered = filter_df(
-        filtered,
-        "batch",
         batch,
-    )
-
-    filtered = filter_df(
-        filtered,
-        "semester",
         semester,
     )
 
@@ -1077,41 +1104,13 @@ def get_financial_year_budget(
     semester,
     financial_year_start,
 ):
-    filtered = df.copy()
-
-    filtered = filter_df(
-        filtered,
-        "line_of_business",
+    filtered = get_matching_budget_rows(
+        df,
         selected_college,
-    )
-
-    filtered = filter_df(
-        filtered,
-        "business_type",
         business_type,
-    )
-
-    filtered = filter_df(
-        filtered,
-        "programme_name",
         programme_name,
-    )
-
-    filtered = filter_df(
-        filtered,
-        "job_code",
         job_code,
-    )
-
-    filtered = filter_df(
-        filtered,
-        "batch",
         batch,
-    )
-
-    filtered = filter_df(
-        filtered,
-        "semester",
         semester,
     )
 
@@ -1120,7 +1119,7 @@ def get_financial_year_budget(
 
     total = 0
 
-    # Old CSV format: Apr-26 ... Mar-27
+    # Old CSV: Apr-26 ... Mar-27
     for month in [
         "apr", "may", "jun", "jul", "aug",
         "sep", "oct", "nov", "dec",
@@ -1151,7 +1150,7 @@ def get_financial_year_budget(
     if total > 0:
         return total
 
-    # New CSV format: Year.1 + Jan-Dec
+    # New CSV: Year.1 + Jan-Dec
     current_year_rows = filtered[
         filtered["year"]
         .astype(str)
@@ -1220,6 +1219,71 @@ def get_month_budget(
             0,
         )
     )
+
+
+def get_month_budget_from_master(
+    df,
+    selected_college,
+    business_type,
+    programme_name,
+    job_code,
+    batch,
+    semester,
+    selected_month,
+    selected_year,
+):
+    filtered = get_matching_budget_rows(
+        df,
+        selected_college,
+        business_type,
+        programme_name,
+        job_code,
+        batch,
+        semester,
+    )
+
+    if filtered.empty:
+        return 0
+
+    month_column = MONTHS.get(
+        selected_month
+    )
+
+    if not month_column:
+        return 0
+
+    # Old CSV format.
+    dated_column = (
+        f"{month_column}_"
+        f"{str(selected_year)[-2:]}"
+    )
+
+    if dated_column in filtered.columns:
+        return filtered[
+            dated_column
+        ].apply(safe_number).sum()
+
+    # New CSV format.
+    if "year" in filtered.columns:
+        year_rows = filtered[
+            filtered["year"]
+            .astype(str)
+            .str.extract(r"(20\d{2})", expand=False)
+            .fillna("")
+            == str(selected_year)
+        ]
+
+        if not year_rows.empty:
+            return year_rows[
+                month_column
+            ].apply(safe_number).sum()
+
+    if month_column in filtered.columns:
+        return filtered[
+            month_column
+        ].apply(safe_number).sum()
+
+    return 0
 
 
 def get_calendar_year_budget(
@@ -2559,8 +2623,14 @@ def show_budget_calendar():
         selected_year,
     )
 
-    month_budget = get_month_budget(
-        selected_row,
+    month_budget = get_month_budget_from_master(
+        budget_df,
+        selected_college,
+        business_type,
+        programme_name,
+        job_code,
+        batch,
+        semester,
         selected_month,
         selected_year,
     )
