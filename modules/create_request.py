@@ -1687,7 +1687,7 @@ def show_create_request(username):
         )
 
         email_sent = send_email(
-            "Pradeep.Pandey@in.gt.com",
+            "Shalini.Kumari1@in.gt.com",
             "New Training Request Received",
             f"""
 Request ID: {request_id}
@@ -1697,6 +1697,7 @@ College: {client_name}
 Training Topic: {training_topic}
 
 Please login to review the request.
+https://target-budget-approval.streamlit.app/
 """
         )
 
